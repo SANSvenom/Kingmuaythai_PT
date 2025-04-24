@@ -24,7 +24,7 @@
                 <div>
                     <a href="dashboard.php" class="flex items-center px-6 py-3 hover:bg-gray-100 text-gray-700">
                         <i class="fas fa-th-large mr-3"></i>
-                        <span class="mx-3">Dashboard ganteng</span>
+                        <span class="mx-3">Dashboard</span>
                     </a>
 
                     <a href="members.php" class="flex items-center px-6 py-3 bg-gray-200 text-gray-700">
