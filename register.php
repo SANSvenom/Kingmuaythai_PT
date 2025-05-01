@@ -66,7 +66,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         
         <div class="links">
             <a href="login.php"><span class="text-gray">Sudah punya akun?</span> <strong>Login</strong></a>
-         </div>
+        </div>
 
     </div>
 </body>
