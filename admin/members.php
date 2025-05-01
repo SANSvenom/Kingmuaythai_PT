@@ -11,60 +11,8 @@
 
 <body class="bg-gray-100 font-sans">
     <div class="flex h-screen">
-        <!-- Sidebar -->
-        <div class="bg-white w-64 shadow-lg hidden md:block">
-            <div class="p-6 flex items-center justify-center border-b">
-                <div class="flex flex-col items-center">
-                    <img src="../image/LOGOKING.png" alt="King Muaythai Logo" class="h-14 w-14 rounded-full">
-                    <h2 class="mt-2 text-xl font-bold text-gray-800">King Muaythai</h2>
-                </div>
-            </div>
+        <?php include '../partials/sidebar.php'; ?>
 
-            <nav class="mt-6">
-                <div>
-                    <a href="dashboard.php" class="flex items-center px-6 py-3 hover:bg-gray-100 text-gray-700">
-                        <i class="fas fa-th-large mr-3"></i>
-                        <span class="mx-3">Dashboard</span>
-                    </a>
-
-                    <a href="members.php" class="flex items-center px-6 py-3 bg-gray-200 text-gray-700">
-                        <i class="fas fa-users mr-3"></i>
-                        <span class="mx-3">Members</span>
-                    </a>
-
-                    <a href="classes.php" class="flex items-center px-6 py-3 hover:bg-gray-100 text-gray-700">
-                        <i class="fas fa-calendar-alt mr-3"></i>
-                        <span class="mx-3">Classes</span>
-                    </a>
-
-                    <a href="trainers.php" class="flex items-center px-6 py-3 hover:bg-gray-100 text-gray-700">
-                        <i class="fas fa-user-tie mr-3"></i>
-                        <span class="mx-3">Trainers</span>
-                    </a>
-
-                    <a href="absensi.php" class="flex items-center px-6 py-3 hover:bg-gray-100 text-gray-700">
-                        <i class="fas fa-calendar-times mr-3"></i>
-                        <span class="mx-3">Absensi</span>
-                    </a>
-
-                    <a href="payment.php" class="flex items-center px-6 py-3 hover:bg-gray-100 text-gray-700">
-                        <i class="fas fa-credit-card mr-3"></i>
-                        <span class="mx-3">Payment</span>
-                    </a>
-                </div>
-            </nav>
-
-            <div class="absolute bottom-0 my-8 w-64">
-                <a href="#" class="flex items-center px-6 py-3 hover:bg-gray-100 text-gray-700">
-                    <i class="fas fa-cog mr-3"></i>
-                    <span class="mx-3">Settings</span>
-                </a>
-                <a href="#" class="flex items-center px-6 py-3 hover:bg-gray-100 text-red-500">
-                    <i class="fas fa-sign-out-alt mr-3"></i>
-                    <span class="mx-3">Logout</span>
-                </a>
-            </div>
-        </div>
 
         <!-- Main Content -->
         <div class="flex-1 flex flex-col overflow-hidden">
@@ -142,33 +90,38 @@
                         </div>
 
                         <!-- Search and Filter Section -->
-                        <div class="flex flex-col md:flex-row justify-between mb-6 space-y-4 md:space-y-0">
-                            <div class="relative">
+                        <div class="flex flex-col md:flex-row justify-between items-center mb-6 space-y-4 md:space-y-0">
+                            <!-- Search Input -->
+                            <div class="relative w-full md:w-64">
                                 <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                     <i class="fas fa-search text-gray-400"></i>
                                 </div>
                                 <input type="text"
-                                    class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:ring-red-500 focus:border-red-500 sm:text-sm"
+                                    class="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:ring-red-500 focus:border-red-500 sm:text-sm"
                                     placeholder="Search members...">
                             </div>
 
-                            <div class="flex space-x-3">
+                            <!-- Filters + Button -->
+                            <div class="flex space-x-3 items-center">
+                                <!-- Status Filter -->
                                 <div class="relative inline-block text-left">
                                     <button
-                                        class="inline-flex justify-between w-40 rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none">
+                                        class="inline-flex justify-between items-center w-40 rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none">
                                         All Status
                                         <i class="fas fa-chevron-down ml-2"></i>
                                     </button>
                                 </div>
 
+                                <!-- Membership Filter -->
                                 <div class="relative inline-block text-left">
                                     <button
-                                        class="inline-flex justify-between w-40 rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none">
+                                        class="inline-flex justify-between items-center w-40 rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none">
                                         All Memberships
                                         <i class="fas fa-chevron-down ml-2"></i>
                                     </button>
                                 </div>
 
+                                <!-- Add Button -->
                                 <button
                                     class="bg-red-600 hover:bg-red-700 text-white rounded-md px-4 py-2 text-sm font-medium flex items-center">
                                     <i class="fas fa-plus mr-2"></i>
@@ -176,6 +129,7 @@
                                 </button>
                             </div>
                         </div>
+
 
                         <!-- Members Table -->
                         <div class="bg-white shadow overflow-hidden sm:rounded-lg">

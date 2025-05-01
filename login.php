@@ -25,24 +25,55 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 ?>
 
 <!DOCTYPE html>
-<html lang="en">
+<html lang="id">
 <head>
     <meta charset="UTF-8">
-    <script src="https://cdn.tailwindcss.com"></script>
-    <title>Login</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>King Muaythai - Login</title>
+    <!-- Import font Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="css/login.css">
+    
 </head>
-<body class="bg-gray-100 h-screen flex items-center justify-center">
-    <form method="post" class="bg-white p-8 rounded-lg shadow-md w-full max-w-sm">
-        <h2 class="text-2xl font-bold mb-6 text-center">Login</h2>
-        <?php if (isset($error)): ?>
-            <div class="mb-4 text-red-500 text-center"><?= $error ?></div>
+<body>
+    <div class="background-image">
+        <div class="header-container">
+            <div class="welcome-text">Selamat Datang di</div>
+            <div class="brand-container">
+                <img src="image/LOGOKING.png" alt="King Muaythai Logo" class="logo">
+                <div class="brand-name">King Muaythai</div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="login-container">
+        <div class="login-header">LOG IN</div>
+        
+        <?php if(!empty($error)): ?>
+            <div class="error-message"><?php echo $error; ?></div>
         <?php endif; ?>
-        <input type="text" name="username" placeholder="Username" required class="w-full px-4 py-2 mb-4 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400">
-        <input type="password" name="password" placeholder="Password" required class="w-full px-4 py-2 mb-4 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400">
-        <button type="submit" class="w-full bg-blue-500 text-white py-2 rounded-md hover:bg-blue-600">Login</button>
-        <p class="mt-4 text-sm text-center text-gray-500">
-            Belum punya akun? <a href="register.php" class="text-blue-600 hover:underline">Register</a>
-        </p>
-    </form>
+        
+        <form method="post" action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]); ?>">
+            <div class="input-group">
+                <input type="text" name="username" placeholder="Username" required>
+            </div>
+            
+            <div class="input-group">
+                <input type="password" name="password" placeholder="Password" required>
+            </div>
+            
+            <button type="submit" class="login-btn">Login</button>
+        </form>
+        
+        <div class="divider">ATAU</div>
+        
+        <div class="links">
+            <a href="forgot-password.php">Lupa password? <strong> Reset Password</strong> </a>
+            <a href="register.php">Belum punya akun? <strong>Register Akun</strong> </a>
+        </div>
+    </div>
 </body>
 </html>

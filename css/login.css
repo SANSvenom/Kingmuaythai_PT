@@ -1,0 +1,146 @@
+body {
+    margin: 0;
+    padding: 0;
+    font-family: 'Inter', sans-serif;
+    background-color: #f4f4f4;
+    display: flex;
+    height: 100vh;
+}
+
+.background-image {
+    flex: 1;
+    background-image: url('../image/background-login.jpg');
+    background-size: cover;
+    background-position: center;
+    position: relative;
+    color: white;
+    background-color: #000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.background-image::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+}
+
+.header-container {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    padding-right: 20%; /* Membuat tampilan agak ke kiri dari tengah */
+}
+
+.welcome-text {
+    font-size: 20px;
+    margin-bottom: 10px;
+}
+
+.brand-container {
+    display: flex;
+    align-items: center;
+}
+
+.logo {
+    width: 60px;
+    height: 60px;
+    margin-right: 10px;
+}
+
+.brand-name {
+    font-size: 40px;
+    font-weight: bold;
+    text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.5);
+}
+
+.login-container {
+    flex: 0 0 350px;
+    background-color: white;
+    padding: 40px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.login-header {
+    text-align: center;
+    font-size: 24px;
+    font-weight: bold;
+    margin-bottom: 30px;
+}
+
+.input-group {
+    margin-bottom: 20px;
+}
+
+.input-group input {
+    width: 100%;
+    padding: 10px 0;
+    border: none;
+    border-bottom: 1px solid #ddd;
+    outline: none;
+    font-size: 16px;
+    font-family: 'Inter', sans-serif;
+}
+
+.login-btn {
+    background-color: #c41200;
+    color: white;
+    border: none;
+    padding: 12px;
+    width: 100%;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: bold;
+    margin-top: 10px;
+    margin-bottom: 20px;
+    font-family: 'Inter', sans-serif;
+}
+
+.divider {
+    display: flex;
+    align-items: center;
+    text-align: center;
+    margin: 20px 0;
+    color: #888;
+}
+
+.divider::before, .divider::after {
+    content: '';
+    flex: 1;
+    border-bottom: 1px solid #ddd;
+}
+
+.divider::before {
+    margin-right: 10px;
+}
+
+.divider::after {
+    margin-left: 10px;
+}
+
+.links {
+    text-align: center;
+}
+
+.links a {
+    display: block;
+    margin-top: 10px;
+    color: #333;
+    text-decoration: none;
+}
+
+.error-message {
+    color: #c41200;
+    margin-bottom: 15px;
+    text-align: center;
+}
+
