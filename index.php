@@ -29,7 +29,7 @@
     <header class="header" id="home">
         <h1>King Muaythai Indonesia</h1>
         <p>Latihan Muay Thai profesional untuk semua level. Tingkatkan kebugaran, kekuatan dan rasa percaya diri Anda bersama pelatih berpengalaman.</p>
-        <a href="#login" class="btn">Gabung Sekarang</a>
+        <a href="register.php" class="btn">Gabung Sekarang</a>
     </header>
 
     <!-- About Section -->
