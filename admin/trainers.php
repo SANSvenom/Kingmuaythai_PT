@@ -7,177 +7,250 @@
     <title>King Muaythai - Trainers</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 </head>
 
 <body class="bg-gray-100 font-sans">
+    <!-- Add Trainer Modal -->
+    <div id="addTrainerModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 hidden">
+        <div class="bg-white rounded-lg w-full max-w-lg p-6">
+            <h2 class="text-lg font-semibold mb-4">Add New Trainer</h2>
+            <form id="addTrainerForm" method="POST" enctype="multipart/form-data">
+                <div class="mb-4">
+                    <label class="block text-sm font-medium mb-1">Name</label>
+                    <input type="text" name="name" id="trainerName" required class="w-full border rounded p-2">
+                </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium mb-1">Position</label>
+                    <input type="text" name="position" id="trainerPosition" required class="w-full border rounded p-2">
+                </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium mb-1">Status</label>
+                    <select name="status" id="trainerStatus" class="w-full border rounded p-2">
+                        <option value="Active">Active</option>
+                        <option value="Inactive">Inactive</option>
+                    </select>
+                </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium mb-1">Specialties</label>
+                    <input type="text" name="specialties" id="trainerSpecialties" class="w-full border rounded p-2">
+                </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium mb-1">Cover Photo</label>
+                    <input type="file" name="cover_photo" id="trainerCoverPhoto" accept="image/*"
+                        class="w-full border rounded p-2 mb-2">
+                    <img id="coverPreview" class="mt-2 hidden w-full h-48 object-cover rounded">
+                </div>
+                <div class="flex justify-end space-x-2">
+                    <button type="button" onclick="document.getElementById('addTrainerModal').classList.add('hidden')"
+                        class="px-4 py-2 bg-gray-300 rounded">Cancel</button>
+                    <button type="submit" id="addTrainerBtn"
+                        class="px-4 py-2 bg-red-600 text-white rounded">Add</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Edit Trainer Modal -->
+    <div id="editTrainerModal"
+        class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 hidden">
+        <div class="bg-white rounded-lg w-full max-w-lg p-6">
+            <h2 class="text-lg font-semibold mb-4">Edit Trainer</h2>
+            <form id="editTrainerForm" method="POST" enctype="multipart/form-data">
+                <input type="hidden" name="id" id="editTrainerId">
+                <div class="mb-4">
+                    <label class="block text-sm font-medium mb-1">Name</label>
+                    <input type="text" name="name" id="editTrainerName" required class="w-full border rounded p-2">
+                </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium mb-1">Position</label>
+                    <input type="text" name="position" id="editTrainerPosition" required
+                        class="w-full border rounded p-2">
+                </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium mb-1">Status</label>
+                    <select name="status" id="editTrainerStatus" class="w-full border rounded p-2">
+                        <option value="Active">Active</option>
+                        <option value="Inactive">Inactive</option>
+                    </select>
+                </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium mb-1">Specialties</label>
+                    <input type="text" name="specialties" id="editTrainerSpecialties" class="w-full border rounded p-2">
+                </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium mb-1">Cover Photo</label>
+                    <input type="file" name="cover_photo" id="editTrainerCoverPhoto" accept="image/*"
+                        class="w-full border rounded p-2 mb-2">
+                    <img id="editCoverPreview" class="mt-2 hidden w-full h-48 object-cover rounded">
+                </div>
+                <div class="flex justify-end space-x-2">
+                    <button type="button" onclick="document.getElementById('editTrainerModal').classList.add('hidden')"
+                        class="px-4 py-2 bg-gray-300 rounded">Cancel</button>
+                    <button type="submit" id="editTrainerBtn" class="px-4 py-2 bg-red-600 text-white rounded">Save
+                        Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Main Layout -->
     <div class="flex h-screen">
-    <?php include '../partials/sidebar.php'; ?>
+        <?php include '../partials/sidebar.php'; ?>
 
-
-        <!-- Main Content -->
         <div class="flex-1 flex flex-col overflow-hidden">
-            <!-- Top Navigation -->
             <header class="bg-white shadow-sm z-10">
                 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div class="flex justify-between h-16">
-                        <div class="flex items-center md:hidden">
-                            <button id="menu-button"
-                                class="p-2 rounded-md text-gray-600 hover:text-gray-900 focus:outline-none">
-                                <i class="fas fa-bars"></i>
-                            </button>
-                        </div>
                         <div class="flex items-center">
                             <h1 class="text-xl font-semibold text-gray-800">Trainers</h1>
-                        </div>
-                        <div class="flex items-center space-x-4">
-                            <button class="text-gray-500 hover:text-gray-700">
-                                <i class="fas fa-bell"></i>
-                            </button>
-                            <button class="text-gray-500 hover:text-gray-700">
-                                <i class="fas fa-question-circle"></i>
-                            </button>
                         </div>
                     </div>
                 </div>
             </header>
 
-            <!-- Main Content -->
             <main class="flex-1 overflow-y-auto bg-gray-100">
                 <div class="py-6">
                     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-
-                        <!-- Statistics Cards -->
-                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-                            <div class="bg-white overflow-hidden shadow rounded-lg">
-                                <div class="px-4 py-5 sm:p-6">
-                                    <h3 class="text-2xl font-bold text-gray-900">12</h3>
-                                    <p class="text-sm text-gray-500">Total Trainers</p>
-                                    <div class="mt-2 w-full bg-gray-200 rounded-full h-1">
-                                        <div class="bg-red-600 h-1 rounded-full" style="width: 100%"></div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="bg-white overflow-hidden shadow rounded-lg">
-                                <div class="px-4 py-5 sm:p-6">
-                                    <h3 class="text-2xl font-bold text-gray-900">10</h3>
-                                    <p class="text-sm text-gray-500">Active Trainers</p>
-                                    <div class="mt-2 w-full bg-gray-200 rounded-full h-1">
-                                        <div class="bg-green-500 h-1 rounded-full" style="width: 83%"></div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- <div class="bg-white overflow-hidden shadow rounded-lg">
-                                <div class="px-4 py-5 sm:p-6">
-                                    <h3 class="text-2xl font-bold text-gray-900">32</h3>
-                                    <p class="text-sm text-gray-500">Classes Covered</p>
-                                    <div class="mt-2 w-full bg-gray-200 rounded-full h-1">
-                                        <div class="bg-blue-500 h-1 rounded-full" style="width: 90%"></div>
-                                    </div>
-                                </div>
-                            </div> -->
-
+                        <div class="flex justify-between mb-6">
+                            <input type="text" placeholder="Search trainers..."
+                                class="pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-red-500 focus:border-red-500">
+                            <button id="openAddTrainerModal"
+                                class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md text-sm font-medium flex items-center">
+                                <i class="fas fa-plus mr-2"></i>Add Trainer
+                            </button>
                         </div>
 
-                        <!-- Search and Filter Section -->
-                        <div class="flex flex-col md:flex-row justify-between mb-6 space-y-4 md:space-y-0">
-                            <div class="relative">
-                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                    <i class="fas fa-search text-gray-400"></i>
-                                </div>
-                                <input type="text"
-                                    class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:ring-red-500 focus:border-red-500 sm:text-sm"
-                                    placeholder="Search trainers...">
-                            </div>
+                        <!-- Trainer Cards -->
+                        <div class="container mx-auto px-4 " id="trainerCards">
+                        <?php
+                            $conn = new mysqli("localhost", "root", "", "kingmuaythai_db");
+                            $result = $conn->query("SELECT * FROM trainers ORDER BY id DESC");
 
-                            <div class="flex space-x-3">
-                                <div class="relative inline-block text-left">
-                                    <button
-                                        class="inline-flex justify-between w-40 rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none">
-                                        All Specialties
-                                        <i class="fas fa-chevron-down ml-2"></i>
-                                    </button>
-                                </div>
+                            if ($result->num_rows > 0): ?>
+                                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="trainerCards">
+                                    <?php while ($row = $result->fetch_assoc()): ?>
+                                        <div class="bg-white rounded-lg shadow-md p-4 trainer-card" data-id="<?= $row['id'] ?>">
+                                            <!-- Menampilkan gambar pelatih -->
+                                            <img src="<?= htmlspecialchars($row['cover_photo']) ?>" class="w-full h-80 object-cover rounded mb-2" alt="Trainer Image">
+                                            <h3 class="text-lg font-bold"><?= htmlspecialchars($row['name']) ?></h3>
+                                            <p class="text-sm text-gray-600"><?= htmlspecialchars($row['position']) ?></p>
+                                            <p class="text-sm mt-1"><strong>Status:</strong> <?= htmlspecialchars($row['status']) ?></p>
+                                            <p class="text-sm"><strong>Specialties:</strong> <?= htmlspecialchars($row['specialties']) ?></p>
 
-                                <div class="relative inline-block text-left">
-                                    <button
-                                        class="inline-flex justify-between w-40 rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none">
-                                        All Status
-                                        <i class="fas fa-chevron-down ml-2"></i>
-                                    </button>
-                                </div>
+                                            <!-- <button class="text-blue-500 hover:text-blue-700 editTrainerBtn" data-id="<?= $row['id'] ?>">Edit</button>
+                                            <button class="text-red-500 hover:text-red-700 deleteTrainerBtn" data-id="<?= $row['id'] ?>">Delete</button> -->
 
-                                <button
-                                    class="bg-red-600 hover:bg-red-700 text-white rounded-md px-4 py-2 text-sm font-medium flex items-center">
-                                    <i class="fas fa-plus mr-2"></i>
-                                    Add Trainer
-                                </button>
-                            </div>
+                                            <button class="text-gray-500 hover:text-gray-700 editTrainerBtn"data-id="<?= $row['id'] ?>"><i class="fas fa-edit"></i></button>
+                                            <button class="text-gray-500 hover:text-gray-700 deleteTrainerBtn"data-id="<?= $row['id'] ?>"><i class="fas fa-trash"></i></button>
+                                            
+                                        </div>
+                                    <?php endwhile; ?>
+                                </div>
+                            <?php else: ?>
+                                <div class="text-center text-gray-500">No trainers found.</div>
+                            <?php endif; ?>
+
+
                         </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
 
-                        <!-- Trainers Grid -->
-                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-                            <!-- Trainer Card -->
-                            <div class="bg-white rounded-lg shadow overflow-hidden">
-                                <div class="relative">
-                                    <img src="/api/placeholder/600/300" alt="Jason Lee"
-                                        class="w-full h-48 object-cover">
-                                    <div class="absolute top-0 right-0 p-2">
-                                        <span
-                                            class="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">Active</span>
-                                    </div>
-                                </div>
-                                <div class="p-6">
-                                    <div class="flex items-center mb-4">
-                                        <img src="/api/placeholder/80/80" alt="Jason Lee"
-                                            class="h-12 w-12 rounded-full border-2 border-red-600">
-                                        <div class="ml-4">
-                                            <h3 class="text-lg font-bold text-gray-900">Jason Lee</h3>
-                                            <p class="text-sm text-gray-500">Head Trainer</p>
-                                        </div>
-                                    </div>
-                                    <div class="mb-4">
-                                        <div class="flex items-center mb-2">
-                                            <i class="fas fa-medal text-yellow-500 mr-2"></i>
-                                            <span class="text-sm text-gray-700">5x National Champion</span>
-                                        </div>
-                                        <div class="flex items-center mb-2">
-                                            <i class="fas fa-calendar-alt text-blue-500 mr-2"></i>
-                                            <span class="text-sm text-gray-700">8+ years experience</span>
-                                        </div>
-                                        <div class="flex items-center">
-                                            <i class="fas fa-certificate text-red-500 mr-2"></i>
-                                            <span class="text-sm text-gray-700">Certified Level 3 Coach</span>
-                                        </div>
-                                    </div>
-                                    <div class="border-t pt-4">
-                                        <h4 class="text-sm font-medium text-gray-700 mb-2">Specialties</h4>
-                                        <div class="flex flex-wrap gap-2">
-                                            <span
-                                                class="px-2 py-1 bg-red-100 text-red-800 text-xs rounded-full">Clinch</span>
-                                            <span
-                                                class="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">Technique</span>
-                                            <span
-                                                class="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">Beginner</span>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="bg-gray-50 px-6 py-4 flex justify-between">
-                                    <div>
-                                        <span class="text-xs text-gray-500">Classes</span>
-                                        <p class="text-sm font-medium text-gray-900">3 Active</p>
-                                    </div>
-                                    <div class="flex space-x-2">
-                                        <button class="p-2 text-gray-500 hover:text-gray-700">
-                                            <i class="fas fa-eye"></i>
-                                        </button>
-                                        <button class="p-2 text-gray-500 hover:text-gray-700">
-                                            <i class="fas fa-edit"></i>
-                                        </button>
-                                        <button class="p-2 text-gray-500 hover:text-gray-700">
-                                            <i class="fas fa-trash"></i>
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
+    <script>
+        // Open Add Trainer Modal
+        $('#openAddTrainerModal').click(function () {
+            $('#addTrainerModal').removeClass('hidden');
+        });
+
+        // Handle Add Trainer Form Submission (AJAX)
+        $('#addTrainerForm').submit(function (e) {
+            e.preventDefault(); // Prevent the form from submitting normally
+            var formData = new FormData(this); // Create a FormData object to send all form data including file
+            $.ajax({
+                url: 'add-trainer.php',
+                method: 'POST',
+                data: formData,
+                contentType: false,
+                processData: false,
+                success: function (response) {
+                    if (response === 'success') {
+                        alert('Trainer added successfully!');
+                        location.reload();
+                    } else {
+                        alert('Failed to add trainer. Please try again.');
+                    }
+                },
+                error: function () {
+                    alert('Error in adding trainer.');
+                }
+            });
+        });
+
+        // Open Edit Trainer Modal (AJAX)
+        $('.editTrainerBtn').click(function () {
+            var trainerId = $(this).data('id');
+
+            // Get trainer data from the server via AJAX
+            $.ajax({
+                url: 'get-trainer.php',
+                method: 'GET',
+                data: { id: trainerId },
+                success: function (response) {
+                    var trainer = JSON.parse(response);
+                    $('#editTrainerId').val(trainer.id);
+                    $('#editTrainerName').val(trainer.name);
+                    $('#editTrainerPosition').val(trainer.position);
+                    $('#editTrainerStatus').val(trainer.status);
+                    $('#editTrainerSpecialties').val(trainer.specialties);
+                    $('#editTrainerModal').removeClass('hidden');
+                }
+            });
+        });
+
+        // Handle Trainer Edit Form Submission
+        $('#editTrainerForm').submit(function (e) {
+            e.preventDefault();
+            var formData = new FormData(this); // Create a FormData object to send all form data including file
+
+            $.ajax({
+                url: 'edit-trainer.php',
+                method: 'POST',
+                data: formData,
+                contentType: false,
+                processData: false,
+                success: function (response) {
+                    alert('Trainer updated successfully!');
+                    $('#editTrainerModal').addClass('hidden');
+                    location.reload(); // Reload the page to reflect the changes
+                },
+                error: function () {
+                    alert('Error in editing trainer.');
+                }
+            });
+        });
+
+        // Handle Delete Trainer Action (AJAX)
+        $('.deleteTrainerBtn').click(function () {
+            var trainerId = $(this).data('id');
+            if (confirm('Are you sure you want to delete this trainer?')) {
+                $.ajax({
+                    url: 'delete-trainer.php',
+                    method: 'POST',
+                    data: { id: trainerId },
+                    success: function () {
+                        alert('Trainer deleted successfully!');
+                        location.reload(); // Reload the page after deletion
+                    },
+                    error: function () {
+                        alert('Failed to delete trainer.');
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+
+</html>
