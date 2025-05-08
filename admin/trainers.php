@@ -134,9 +134,9 @@
                                             <!-- Menampilkan gambar pelatih -->
                                             <img src="<?= htmlspecialchars($row['cover_photo']) ?>" class="w-full h-80 object-cover rounded mb-2" alt="Trainer Image">
                                             <h3 class="text-lg font-bold"><?= htmlspecialchars($row['name']) ?></h3>
-                                            <p class="text-sm text-gray-600"><?= htmlspecialchars($row['position']) ?></p>
-                                            <p class="text-sm mt-1"><strong>Status:</strong> <?= htmlspecialchars($row['status']) ?></p>
-                                            <p class="text-sm"><strong>Specialties:</strong> <?= htmlspecialchars($row['specialties']) ?></p>
+                                            <p class="text-lg text-gray-600"><?= htmlspecialchars($row['position']) ?></p>
+                                            <p class="text-lg mt-1"><strong>Status:</strong> <?= htmlspecialchars($row['status']) ?></p>
+                                            <p class="text-lg"><strong>Specialties:</strong> <?= htmlspecialchars($row['specialties']) ?></p>
 
                                             <!-- <button class="text-blue-500 hover:text-blue-700 editTrainerBtn" data-id="<?= $row['id'] ?>">Edit</button>
                                             <button class="text-red-500 hover:text-red-700 deleteTrainerBtn" data-id="<?= $row['id'] ?>">Delete</button> -->

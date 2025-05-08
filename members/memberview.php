@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,6 +8,7 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
 </head>
+
 <body class="bg-gray-100 text-gray-800">
     <!-- Header -->
     <header class="bg-red-600 text-white p-4 shadow-md">
@@ -36,7 +38,8 @@
                 </div>
                 <div>
                     <h2 class="text-lg font-bold">Hai, John Smith!</h2>
-                    <p class="text-sm text-gray-600">Membership aktif hingga: <span class="font-medium text-red-600">20 Mei 2025</span></p>
+                    <p class="text-sm text-gray-600">Membership aktif hingga: <span class="font-medium text-red-600">20
+                            Mei 2025</span></p>
                 </div>
             </div>
             <div class="flex justify-between bg-gray-50 rounded-lg p-3">
@@ -106,7 +109,8 @@
                         </div>
                     </div>
                     <div class="flex justify-end">
-                        <button class="bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded-md text-sm flex items-center">
+                        <button
+                            class="bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded-md text-sm flex items-center">
                             <i class="fas fa-qrcode mr-2"></i>
                             Check-in
                         </button>
@@ -121,7 +125,7 @@
                 <h3 class="text-md font-semibold">Jadwal Hari Ini</h3>
                 <a href="#" class="text-sm text-red-600">Lihat Semua</a>
             </div>
-            
+
             <div class="space-y-3">
                 <!-- Class -->
                 <div class="flex items-center p-3 border rounded-lg bg-gray-50">
@@ -182,7 +186,7 @@
                 <h3 class="text-md font-semibold">Riwayat Kehadiran</h3>
                 <a href="#" class="text-sm text-red-600">Lihat Semua</a>
             </div>
-            
+
             <div class="overflow-x-auto">
                 <table class="min-w-full">
                     <thead class="bg-gray-50 text-xs">
@@ -211,7 +215,8 @@
                             <td class="px-3 py-3">14 Apr 2025</td>
                             <td class="px-3 py-3">Advanced Technique</td>
                             <td class="px-3 py-3">
-                                <span class="px-2 py-1 text-xs rounded-full bg-yellow-100 text-yellow-800">Terlambat</span>
+                                <span
+                                    class="px-2 py-1 text-xs rounded-full bg-yellow-100 text-yellow-800">Terlambat</span>
                             </td>
                         </tr>
                         <tr>
@@ -240,7 +245,7 @@
                     </div>
                 </div>
             </div>
-            
+
             <div class="border rounded-lg overflow-hidden">
                 <div class="p-4 bg-gray-50">
                     <div class="flex justify-between mb-3">
@@ -254,43 +259,63 @@
                         </div>
                     </div>
                     <div class="flex justify-end">
-                        <button class="bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded-md text-sm">Perpanjang</button>
+                        <button
+                            class="bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded-md text-sm">Perpanjang</button>
                     </div>
                 </div>
             </div>
         </section>
 
-        <!-- Trainers -->
+        <!-- Trainers Section -->
+        <?php
+        // Koneksi ke database
+        $conn = new mysqli("localhost", "root", "", "kingmuaythai_db");
+
+        if ($conn->connect_error) {
+            die("Connection failed: " . $conn->connect_error);
+        }
+
+        // Query untuk mendapatkan data pelatih
+        $result = $conn->query("SELECT * FROM trainers");
+
+        if ($result->num_rows > 0) {
+            // Data pelatih ditemukan
+            $trainers = $result->fetch_all(MYSQLI_ASSOC);
+        } else {
+            // Jika tidak ada pelatih
+            $trainers = [];
+        }
+
+        $conn->close();
+        ?>
+
+
         <section id="trainers" class="bg-white p-4 shadow-sm mb-4">
             <div class="flex justify-between items-center mb-3">
                 <h3 class="text-md font-semibold">Pelatih Kami</h3>
                 <a href="#" class="text-sm text-red-600">Lihat Semua</a>
             </div>
-            
-            <div class="grid grid-cols-2 gap-3">
-                <!-- Trainer -->
-                <div class="border rounded-lg overflow-hidden bg-gray-50">
-                    <div class="h-32 bg-gray-200">
-                        <img src="/api/placeholder/180/140" alt="Trainer" class="h-full w-full object-cover">
-                    </div>
-                    <div class="p-3">
-                        <h4 class="font-medium">Sarah Nguyen</h4>
-                        <p class="text-sm text-gray-500">Advanced Technique</p>
-                    </div>
-                </div>
 
-                <!-- Trainer -->
-                <div class="border rounded-lg overflow-hidden bg-gray-50">
-                    <div class="h-32 bg-gray-200">
-                        <img src="/api/placeholder/180/140" alt="Trainer" class="h-full w-full object-cover">
-                    </div>
-                    <div class="p-3">
-                        <h4 class="font-medium">Mike Johnson</h4>
-                        <p class="text-sm text-gray-500">Beginner Class</p>
-                    </div>
-                </div>
+            <div class="grid grid-cols-3 gap-3">
+                <?php if (count($trainers) > 0): ?>
+                    <?php foreach ($trainers as $trainer): ?>
+                        <div class="border rounded-lg overflow-hidden bg-gray-50">
+                            <div class="h-32 bg-gray-200">
+                                <img src="../admin/uploads/trainers    <?= htmlspecialchars($trainer['cover_photo']) ?>" alt="Trainer"
+                                    class="h-full w-full object-cover">
+                            </div>
+                            <div class="p-3">
+                                <h4 class="font-medium"><?= htmlspecialchars($trainer['name']) ?></h4>
+                                <p class="text-sm text-gray-500"><?= htmlspecialchars($trainer['specialties']) ?></p>
+                            </div>
+                        </div>
+                    <?php endforeach; ?>
+                <?php else: ?>
+                    <div class="text-center text-gray-500 w-full">Tidak ada pelatih tersedia.</div>
+                <?php endif; ?>
             </div>
         </section>
+
 
         <!-- Contact Section -->
         <section class="bg-white p-4 shadow-sm mb-4">
@@ -304,7 +329,7 @@
                 </div>
                 <i class="fas fa-chevron-right text-gray-400"></i>
             </a>
-            
+
             <a href="#" class="flex items-center justify-between p-3 border rounded-lg bg-gray-50">
                 <div class="flex items-center">
                     <div class="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center mr-3">
@@ -339,4 +364,5 @@
         </div>
     </nav>
 </body>
+
 </html>
