@@ -513,6 +513,19 @@ if (!isset($_SESSION["username"])) {
             document.getElementById('mobile-menu').classList.add('hidden');
         });
     </script>
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const logoutButton = document.getElementById('logoutButton');
+
+        if (logoutButton) {
+            logoutButton.addEventListener('click', function(event) {
+                if (!confirm('Apakah Anda yakin ingin logout?')) {
+                    event.preventDefault(); // Mencegah tautan diikuti jika pengguna membatalkan
+                }
+            });
+        }
+    });
+</script>
 </body>
 
 </html>
