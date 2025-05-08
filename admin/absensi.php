@@ -78,7 +78,6 @@
                                 </div>
                             </div>
                         </div>
-<<<<<<< HEAD
 
                         <!-- Seksi Pemilihan Tanggal dan Kelas -->
                         <div class="bg-white shadow rounded-lg mb-6">
@@ -221,9 +220,6 @@
                             </div>
 
                             <!-- Tabel -->
-=======
-                            <!-- Table -->
->>>>>>> 23c0aab74a76be024bf3d5e02a10de442a9cce41
                             <div class="overflow-x-auto">
                                 <table class="min-w-full divide-y divide-gray-200">
                                     <thead class="bg-gray-50">
