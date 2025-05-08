@@ -27,14 +27,6 @@
                         <div class="flex items-center">
                             <h1 class="text-xl font-semibold text-gray-800">Sistem Absensi</h1>
                         </div>
-                        <div class="flex items-center space-x-4">
-                            <button class="text-gray-500 hover:text-gray-700">
-                                <i class="fas fa-bell"></i>
-                            </button>
-                            <button class="text-gray-500 hover:text-gray-700">
-                                <i class="fas fa-question-circle"></i>
-                            </button>
-                        </div>
                     </div>
                 </div>
             </header>
@@ -86,6 +78,7 @@
                                 </div>
                             </div>
                         </div>
+<<<<<<< HEAD
 
                         <!-- Seksi Pemilihan Tanggal dan Kelas -->
                         <div class="bg-white shadow rounded-lg mb-6">
@@ -228,6 +221,9 @@
                             </div>
 
                             <!-- Tabel -->
+=======
+                            <!-- Table -->
+>>>>>>> 23c0aab74a76be024bf3d5e02a10de442a9cce41
                             <div class="overflow-x-auto">
                                 <table class="min-w-full divide-y divide-gray-200">
                                     <thead class="bg-gray-50">

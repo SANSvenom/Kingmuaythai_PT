@@ -29,14 +29,6 @@
                         <div class="flex items-center">
                             <h1 class="text-xl font-semibold text-gray-800">Classes</h1>
                         </div>
-                        <div class="flex items-center space-x-4">
-                            <button class="text-gray-500 hover:text-gray-700">
-                                <i class="fas fa-bell"></i>
-                            </button>
-                            <button class="text-gray-500 hover:text-gray-700">
-                                <i class="fas fa-question-circle"></i>
-                            </button>
-                        </div>
                     </div>
                 </div>
             </header>
@@ -86,71 +78,6 @@
                                         <div class="bg-purple-500 h-1 rounded-full" style="width: 92%"></div>
                                     </div>
                                 </div>
-                            </div>
-                        </div>
-
-                        <!-- Calendar Section -->
-                        <div class="bg-white shadow rounded-lg p-6 mb-6">
-                            <div class="flex justify-between items-center mb-4">
-                                <h2 class="text-lg font-medium text-gray-900">April 2025</h2>
-                                <div class="flex space-x-2">
-                                    <button class="p-2 rounded-md text-gray-500 hover:bg-gray-100">
-                                        <i class="fas fa-chevron-left"></i>
-                                    </button>
-                                    <button class="p-2 rounded-md text-gray-500 hover:bg-gray-100">
-                                        <i class="fas fa-chevron-right"></i>
-                                    </button>
-                                </div>
-                            </div>
-
-                            <div class="grid grid-cols-7 gap-2 text-center mb-2">
-                                <div class="text-sm font-medium text-gray-500">Sun</div>
-                                <div class="text-sm font-medium text-gray-500">Mon</div>
-                                <div class="text-sm font-medium text-gray-500">Tue</div>
-                                <div class="text-sm font-medium text-gray-500">Wed</div>
-                                <div class="text-sm font-medium text-gray-500">Thu</div>
-                                <div class="text-sm font-medium text-gray-500">Fri</div>
-                                <div class="text-sm font-medium text-gray-500">Sat</div>
-                            </div>
-
-                            <div class="grid grid-cols-7 gap-2 text-center">
-                                <div class="text-sm p-2 text-gray-400">30</div>
-                                <div class="text-sm p-2 text-gray-400">31</div>
-                                <div class="text-sm p-2">1</div>
-                                <div class="text-sm p-2">2</div>
-                                <div class="text-sm p-2">3</div>
-                                <div class="text-sm p-2">4</div>
-                                <div class="text-sm p-2">5</div>
-                                <div class="text-sm p-2">6</div>
-                                <div class="text-sm p-2">7</div>
-                                <div class="text-sm p-2">8</div>
-                                <div class="text-sm p-2">9</div>
-                                <div class="text-sm p-2">10</div>
-                                <div class="text-sm p-2">11</div>
-                                <div class="text-sm p-2">12</div>
-                                <div class="text-sm p-2">13</div>
-                                <div class="text-sm p-2">14</div>
-                                <div
-                                    class="text-sm p-2 bg-red-100 rounded-lg font-medium text-red-800 border border-red-200">
-                                    15</div>
-                                <div class="text-sm p-2">16</div>
-                                <div class="text-sm p-2">17</div>
-                                <div class="text-sm p-2">18</div>
-                                <div class="text-sm p-2">19</div>
-                                <div class="text-sm p-2">20</div>
-                                <div class="text-sm p-2">21</div>
-                                <div class="text-sm p-2">22</div>
-                                <div class="text-sm p-2">23</div>
-                                <div class="text-sm p-2">24</div>
-                                <div class="text-sm p-2">25</div>
-                                <div class="text-sm p-2">26</div>
-                                <div class="text-sm p-2">27</div>
-                                <div class="text-sm p-2">28</div>
-                                <div class="text-sm p-2">29</div>
-                                <div class="text-sm p-2">30</div>
-                                <div class="text-sm p-2 text-gray-400">1</div>
-                                <div class="text-sm p-2 text-gray-400">2</div>
-                                <div class="text-sm p-2 text-gray-400">3</div>
                             </div>
                         </div>
 

@@ -46,13 +46,9 @@ $current_page = basename($_SERVER['PHP_SELF']);
     </nav>
 
     <div class="absolute bottom-0 my-8 w-64">
-        <a href="#" class="flex items-center px-6 py-3 hover:bg-gray-100 text-gray-700">
-            <i class="fas fa-cog mr-3"></i>
-            <span class="mx-3">Settings</span>
+        <a href="login.php" class="flex items-center px-6 py-3 hover:bg-gray-100 text-red-500">
+            <i class="fas fa-sign-out-alt mr-3"></i>
+            <span class="mx-3">Logout</span>
         </a>
-        <a href="/logout.php" id="logoutButton" class="flex items-center px-6 py-3 hover:bg-gray-100 text-red-500">
-        <i class="fas fa-sign-out-alt mr-3"></i>
-        <span class="mx-3">Logout</span>
-    </a>
     </div>
 </div>
