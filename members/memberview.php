@@ -301,7 +301,7 @@
                     <?php foreach ($trainers as $trainer): ?>
                         <div class="border rounded-lg overflow-hidden bg-gray-50">
                             <div class="h-32 bg-gray-200">
-                                <img src="../admin/uploads/trainers    <?= htmlspecialchars($trainer['cover_photo']) ?>" alt="Trainer"
+                                <img src="../admin/<?= htmlspecialchars($trainer['cover_photo']) ?>" alt="Trainer"
                                     class="h-full w-full object-cover">
                             </div>
                             <div class="p-3">
