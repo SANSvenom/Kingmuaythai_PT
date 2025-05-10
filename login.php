@@ -1,6 +1,6 @@
 <?php
-require 'db.php';
 session_start();
+require 'db.php';
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $username = $_POST["username"];
@@ -13,7 +13,12 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $user = $result->fetch_assoc();
         if (password_verify($password, $user["password"])) {
             $_SESSION["username"] = $user["username"];
-            header("Location: admin/dashboard.php");
+            $_SESSION["role"] = $user["role"]; // Menyimpan role pengguna dalam session
+            if ($user["role"] == 'admin') {
+                header("Location: admin/dashboard.php"); // Halaman Admin
+            } else {
+                header("Location: members/memberview.php"); // Halaman Member
+            }
             exit;
         } else {
             $error = "Password salah!";
@@ -23,6 +28,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     }
 }
 ?>
+
 
 <!DOCTYPE html>
 <html lang="id">
