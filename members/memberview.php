@@ -1,3 +1,36 @@
+<?php
+// Koneksi ke database untuk mendapatkan jadwal
+$host = 'localhost'; 
+$dbname = 'kingmuaythai_db'; 
+$username = 'root'; 
+$password = ''; 
+
+try {
+    // Membuat koneksi PDO
+    $pdo = new PDO("mysql:host=$host;dbname=$dbname", $username, $password);
+    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+} catch (PDOException $e) {
+    die("Koneksi gagal: " . $e->getMessage());
+}
+
+// Mengambil data jadwal kelas dari database
+$query = "SELECT * FROM class_schedule ORDER BY FIELD(day, 'SENIN', 'SELASA', 'RABU', 'KAMIS', 'JUMAT', 'SABTU'), time";
+$stmt = $pdo->prepare($query);
+$stmt->execute();
+$classes = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+// Kelompokkan data berdasarkan hari
+$groupedClasses = [];
+foreach ($classes as $class) {
+    $groupedClasses[$class['day']][] = $class;
+}
+?>
+
+
+
+
+
+
 <!DOCTYPE html>
 <html lang="en">
 
@@ -119,66 +152,117 @@
             </div>
         </section>
 
-        <!-- Today's Schedule -->
-        <section id="schedule" class="bg-white p-4 shadow-sm mb-4">
-            <div class="flex justify-between items-center mb-3">
-                <h3 class="text-md font-semibold">Jadwal Hari Ini</h3>
-                <a href="#" class="text-sm text-red-600">Lihat Semua</a>
-            </div>
 
-            <div class="space-y-3">
-                <!-- Class -->
-                <div class="flex items-center p-3 border rounded-lg bg-gray-50">
-                    <div class="h-10 w-10 rounded-full bg-red-100 flex items-center justify-center mr-3">
-                        <i class="fas fa-dumbbell text-red-600"></i>
-                    </div>
-                    <div class="flex-1">
-                        <div class="flex justify-between">
-                            <h4 class="font-medium">Beginner Class</h4>
-                            <span class="text-xs bg-gray-200 px-2 py-1 rounded-full">Selesai</span>
-                        </div>
-                        <div class="flex text-sm text-gray-500">
-                            <span class="mr-3"><i class="far fa-clock mr-1"></i> 08:00 - 09:30</span>
-                            <span><i class="far fa-user mr-1"></i> Mike Johnson</span>
-                        </div>
-                    </div>
-                </div>
+<section id="schedule" class="bg-white p-4 shadow-sm mb-4">
+    <div class="flex justify-between items-center mb-3">
+        <h3 class="text-md font-semibold">Jadwal</h3>
+    </div>
 
-                <!-- Class -->
-                <div class="flex items-center p-3 border rounded-lg bg-gray-50">
-                    <div class="h-10 w-10 rounded-full bg-red-100 flex items-center justify-center mr-3">
-                        <i class="fas fa-fire text-red-600"></i>
-                    </div>
-                    <div class="flex-1">
-                        <div class="flex justify-between">
-                            <h4 class="font-medium">Advanced Technique</h4>
-                            <span class="text-xs bg-green-200 text-green-800 px-2 py-1 rounded-full">Upcoming</span>
+    <!-- Grid with 2 columns -->
+    <div class="grid grid-cols-2 gap-4">
+        <!-- Column 1: Senin, Selasa, Rabu -->
+        <div>
+            <?php 
+            $days = ['SENIN', 'SELASA', 'RABU']; // Hari untuk kolom pertama
+            foreach ($days as $day): ?>
+                <div class="font-semibold text-lg"><?= $day ?></div>
+                <?php 
+                if (isset($groupedClasses[$day])):
+                    foreach ($groupedClasses[$day] as $class): ?>
+                        <div class="flex items-center p-3 border rounded-lg bg-gray-50 mb-3">
+                            <div class="h-10 w-10 rounded-full bg-red-100 flex items-center justify-center mr-3">
+                                <i class="fas fa-dumbbell text-red-600"></i>
+                            </div>
+                            <div class="flex-1">
+                                <div class="flex justify-between">
+                                    <h4 class="font-medium"><?= htmlspecialchars($class['coach']) ?></h4>
+                                    <span class="text-xs bg-gray-200 px-2 py-1 rounded-full"><?= htmlspecialchars($class['time']) ?></span>
+                                </div>
+                                <div class="flex text-sm text-gray-500">
+                                    <span class="mr-3"><i class="far fa-clock mr-1"></i> <?= htmlspecialchars($class['time']) ?></span>
+                                    <span><i class="far fa-user mr-1"></i> <?= htmlspecialchars($class['coach']) ?></span>
+                                </div>
+                            </div>
                         </div>
-                        <div class="flex text-sm text-gray-500">
-                            <span class="mr-3"><i class="far fa-clock mr-1"></i> 16:30 - 18:00</span>
-                            <span><i class="far fa-user mr-1"></i> Sarah Nguyen</span>
-                        </div>
-                    </div>
-                </div>
+                    <?php endforeach; 
+                else: ?>
+                    <p class="text-gray-500">Tidak ada kelas yang dijadwalkan untuk <?= $day ?>.</p>
+                <?php endif; ?>
+            <?php endforeach; ?>
+        </div>
 
-                <!-- Class -->
-                <div class="flex items-center p-3 border rounded-lg bg-gray-50">
-                    <div class="h-10 w-10 rounded-full bg-red-100 flex items-center justify-center mr-3">
-                        <i class="fas fa-fist-raised text-red-600"></i>
-                    </div>
-                    <div class="flex-1">
-                        <div class="flex justify-between">
-                            <h4 class="font-medium">Sparring Session</h4>
-                            <span class="text-xs bg-gray-200 px-2 py-1 rounded-full">19:00</span>
+        <!-- Column 2: Kamis, Jumat, Sabtu -->
+        <div>
+            <?php 
+            $days = ['KAMIS', 'JUMAT', 'SABTU']; // Hari untuk kolom kedua
+            foreach ($days as $day): ?>
+                <div class="font-semibold text-lg"><?= $day ?></div>
+                <?php 
+                if (isset($groupedClasses[$day])):
+                    foreach ($groupedClasses[$day] as $class): ?>
+                        <div class="flex items-center p-3 border rounded-lg bg-gray-50 mb-3">
+                            <div class="h-10 w-10 rounded-full bg-red-100 flex items-center justify-center mr-3">
+                                <i class="fas fa-dumbbell text-red-600"></i>
+                            </div>
+                            <div class="flex-1">
+                                <div class="flex justify-between">
+                                    <h4 class="font-medium"><?= htmlspecialchars($class['coach']) ?></h4>
+                                    <span class="text-xs bg-gray-200 px-2 py-1 rounded-full"><?= htmlspecialchars($class['time']) ?></span>
+                                </div>
+                                <div class="flex text-sm text-gray-500">
+                                    <span class="mr-3"><i class="far fa-clock mr-1"></i> <?= htmlspecialchars($class['time']) ?></span>
+                                    <span><i class="far fa-user mr-1"></i> <?= htmlspecialchars($class['coach']) ?></span>
+                                </div>
+                            </div>
                         </div>
-                        <div class="flex text-sm text-gray-500">
-                            <span class="mr-3"><i class="far fa-clock mr-1"></i> 19:00 - 20:30</span>
-                            <span><i class="far fa-user mr-1"></i> David Park</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </section>
+                    <?php endforeach; 
+                else: ?>
+                    <p class="text-gray-500">Tidak ada kelas yang dijadwalkan untuk <?= $day ?>.</p>
+                <?php endif; ?>
+            <?php endforeach; ?>
+        </div>
+    </div>
+</section>
+
+
+
+
+
+    <script>
+            document.addEventListener('DOMContentLoaded', function () {
+                function loadSchedule() {
+                    fetch('api/class_schedule_api.php') // Mengambil data jadwal dari server
+                        .then(response => response.json())
+                        .then(data => {
+                            let scheduleHtml = '';
+                            if (data.length > 0) {
+                                data.forEach(classItem => {
+                                    scheduleHtml += `
+                                        <tr class="bg-white">
+                                            <td class="table-cell">${classItem.day}</td>
+                                            <td class="table-cell">${classItem.coach}</td>
+                                            <td class="table-cell">${classItem.time}</td>
+                                        </tr>
+                                    `;
+                                });
+                            } else {
+                                scheduleHtml = '<tr><td colspan="3" class="text-center text-gray-500">Tidak ada kelas yang dijadwalkan hari ini.</td></tr>';
+                            }
+
+                            document.getElementById('class-schedule-body').innerHTML = scheduleHtml;
+                        })
+                        .catch(error => {
+                            console.error('Error fetching schedule:', error);
+                            document.getElementById('class-schedule-body').innerHTML = '<tr><td colspan="3" class="text-center text-red-500">Terjadi kesalahan saat memuat jadwal.</td></tr>';
+                        });
+                }
+
+                // Memuat jadwal saat halaman dimuat
+                loadSchedule();
+            });
+        </script>
+
+
 
         <!-- Attendance History -->
         <section id="attendance" class="bg-white p-4 shadow-sm mb-4">
