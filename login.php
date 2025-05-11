@@ -1,25 +1,34 @@
 <?php
 session_start();
-require 'db.php';
+require 'db.php'; // Pastikan db.php berisi pengaturan koneksi database Anda
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $username = $_POST["username"];
     $password = $_POST["password"];
 
-    $sql = "SELECT * FROM users WHERE username = '$username'";
-    $result = $conn->query($sql);
+    // Query untuk mendapatkan data pengguna
+    $sql = "SELECT * FROM users WHERE username = ?";
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param("s", $username); // Bind parameter untuk menghindari SQL Injection
+    $stmt->execute();
+    $result = $stmt->get_result();
 
+    // Jika user ditemukan
     if ($result->num_rows === 1) {
         $user = $result->fetch_assoc();
+        // Verifikasi password yang di-hash
         if (password_verify($password, $user["password"])) {
+            // Menyimpan data login dalam sesi
             $_SESSION["username"] = $user["username"];
-            $_SESSION["role"] = $user["role"]; // Menyimpan role pengguna dalam session
+            $_SESSION["role"] = $user["role"];
+
+            // Redirect berdasarkan role pengguna
             if ($user["role"] == 'admin') {
-                header("Location: admin/dashboard.php"); // Halaman Admin
+                header("Location: admin/dashboard.php");
             } else {
-                header("Location: members/memberview.php"); // Halaman Member
+                header("Location: members/memberview.php"); // Pastikan pengguna diarahkan ke memberview.php
             }
-            exit;
+            exit();
         } else {
             $error = "Password salah!";
         }
@@ -28,6 +37,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     }
 }
 ?>
+
 
 
 <!DOCTYPE html>

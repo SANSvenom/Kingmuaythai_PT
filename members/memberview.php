@@ -1,13 +1,24 @@
 <?php
+session_start();
+
+// Cek jika pengguna sudah login
+if (!isset($_SESSION['username'])) {
+    header('Location: login.php'); // Arahkan ke halaman login jika belum login
+    exit();
+}
+
+// Ambil username dari sesi
+$username = $_SESSION['username']; // Username diambil dari session yang telah diset saat login
+
 // Koneksi ke database untuk mendapatkan jadwal
 $host = 'localhost'; 
 $dbname = 'kingmuaythai_db'; 
-$username = 'root'; 
+$usernameDb = 'root'; 
 $password = ''; 
 
 try {
     // Membuat koneksi PDO
-    $pdo = new PDO("mysql:host=$host;dbname=$dbname", $username, $password);
+    $pdo = new PDO("mysql:host=$host;dbname=$dbname", $usernameDb, $password);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 } catch (PDOException $e) {
     die("Koneksi gagal: " . $e->getMessage());
@@ -63,16 +74,13 @@ foreach ($classes as $class) {
 
     <!-- Main Content -->
     <main class="pb-16"> <!-- Add padding at bottom for nav bar -->
+
         <!-- Welcome Section -->
         <section class="bg-white p-4 shadow-sm mb-4">
             <div class="flex items-center space-x-3 mb-3">
-                <div class="h-14 w-14 rounded-full bg-gray-200 overflow-hidden">
-                    <img src="/api/placeholder/60/60" alt="User" class="h-full w-full object-cover">
-                </div>
                 <div>
-                    <h2 class="text-lg font-bold">Hai, John Smith!</h2>
-                    <p class="text-sm text-gray-600">Membership aktif hingga: <span class="font-medium text-red-600">20
-                            Mei 2025</span></p>
+                    <h2 class="text-3xl font-bold">Hai, <?= htmlspecialchars($username) ?>!</h2>
+                    <!-- <p class="text-sm text-gray-600">Membership aktif hingga: <span class="font-medium text-red-600">20 Mei 2025</span></p> -->
                 </div>
             </div>
             <div class="flex justify-between bg-gray-50 rounded-lg p-3">
@@ -90,6 +98,7 @@ foreach ($classes as $class) {
                 </div>
             </div>
         </section>
+
 
         <!-- Quick Links -->
         <section class="grid grid-cols-4 gap-2 bg-white p-4 shadow-sm mb-4">
@@ -117,6 +126,41 @@ foreach ($classes as $class) {
                 </div>
                 <span class="text-xs text-center">Pelatih</span>
             </a>
+        </section>
+
+                <!-- Payment -->
+        <section id="payment" class="bg-white p-4 shadow-sm mb-4">
+            <h3 class="text-md font-semibold mb-3">Informasi Pembayaran</h3>
+            <div class="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
+                <div class="flex items-center">
+                    <div class="h-10 w-10 rounded-full bg-green-100 flex items-center justify-center mr-3">
+                        <i class="fas fa-check text-green-600"></i>
+                    </div>
+                    <div>
+                        <h4 class="font-medium text-green-800">Membership Aktif</h4>
+                        <p class="text-sm text-green-600">Pembayaran berikutnya: 20 Mei 2025</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="border rounded-lg overflow-hidden">
+                <div class="p-4 bg-gray-50">
+                    <div class="flex justify-between mb-3">
+                        <div>
+                            <div class="text-sm text-gray-500">Paket</div>
+                            <div class="font-medium">Kelas Unlimited</div>
+                        </div>
+                        <div>
+                            <div class="text-sm text-gray-500">Harga</div>
+                            <div class="font-medium">Rp 500,000</div>
+                        </div>
+                    </div>
+                    <div class="flex justify-end">
+                        <button
+                            class="bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded-md text-sm">Perpanjang</button>
+                    </div>
+                </div>
+            </div>
         </section>
 
         <!-- Next Class -->
@@ -315,40 +359,7 @@ foreach ($classes as $class) {
             </div>
         </section>
 
-        <!-- Payment -->
-        <section id="payment" class="bg-white p-4 shadow-sm mb-4">
-            <h3 class="text-md font-semibold mb-3">Informasi Pembayaran</h3>
-            <div class="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
-                <div class="flex items-center">
-                    <div class="h-10 w-10 rounded-full bg-green-100 flex items-center justify-center mr-3">
-                        <i class="fas fa-check text-green-600"></i>
-                    </div>
-                    <div>
-                        <h4 class="font-medium text-green-800">Membership Aktif</h4>
-                        <p class="text-sm text-green-600">Pembayaran berikutnya: 20 Mei 2025</p>
-                    </div>
-                </div>
-            </div>
 
-            <div class="border rounded-lg overflow-hidden">
-                <div class="p-4 bg-gray-50">
-                    <div class="flex justify-between mb-3">
-                        <div>
-                            <div class="text-sm text-gray-500">Paket</div>
-                            <div class="font-medium">Kelas Unlimited</div>
-                        </div>
-                        <div>
-                            <div class="text-sm text-gray-500">Harga</div>
-                            <div class="font-medium">Rp 500,000</div>
-                        </div>
-                    </div>
-                    <div class="flex justify-end">
-                        <button
-                            class="bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded-md text-sm">Perpanjang</button>
-                    </div>
-                </div>
-            </div>
-        </section>
 
         <!-- Trainers Section -->
         <?php
