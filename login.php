@@ -22,11 +22,25 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $_SESSION["username"] = $user["username"];
             $_SESSION["role"] = $user["role"];
 
-            // Redirect berdasarkan role pengguna
+            // Jika user adalah admin, cek apakah sudah ada admin lain
             if ($user["role"] == 'admin') {
-                header("Location: admin/dashboard.php");
+                // Cek apakah sudah ada admin lainnya
+                $admin_check = "SELECT * FROM users WHERE role = 'admin' AND username != ?";
+                $admin_stmt = $conn->prepare($admin_check);
+                $admin_stmt->bind_param("s", $username);
+                $admin_stmt->execute();
+                $admin_result = $admin_stmt->get_result();
+
+                if ($admin_result->num_rows > 0) {
+                    // Jika sudah ada admin lain, jangan izinkan login
+                    $error = "Hanya satu pengguna yang dapat menjadi admin. Admin lain sudah ada.";
+                } else {
+                    // Redirect ke halaman dashboard admin
+                    header("Location: admin/dashboard.php");
+                }
             } else {
-                header("Location: members/memberview.php"); // Pastikan pengguna diarahkan ke memberview.php
+                // Jika bukan admin, redirect ke halaman member view
+                header("Location: members/memberview.php");
             }
             exit();
         } else {
@@ -37,6 +51,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     }
 }
 ?>
+
 
 
 

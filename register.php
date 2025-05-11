@@ -3,20 +3,46 @@ require 'db.php';
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $username = $conn->real_escape_string($_POST["username"]);
-    $password = password_hash($_POST["password"], PASSWORD_DEFAULT);
+    $password = $_POST["password"];
+    $confirm_password = $_POST["confirm_password"];
     $role = $_POST["role"];  // Ambil role dari form
 
-    $check = $conn->query("SELECT * FROM users WHERE username = '$username'");
-    if ($check->num_rows > 0) {
-        $error = "Username sudah digunakan!";
+    // Validasi kecocokan password
+    if ($password !== $confirm_password) {
+        $error = "Password dan konfirmasi password tidak cocok!";
     } else {
-        // Memasukkan data ke database termasuk 'role'
-        $sql = "INSERT INTO users (username, password, role) VALUES ('$username', '$password', '$role')";
-        if ($conn->query($sql)) {
-            header("Location: login.php");
-            exit;
+        // Cek apakah username sudah digunakan
+        $check = $conn->query("SELECT * FROM users WHERE username = '$username'");
+        if ($check->num_rows > 0) {
+            $error = "Username sudah digunakan!";
         } else {
-            $error = "Terjadi kesalahan: " . $conn->error;
+            // Jika role adalah admin, cek apakah sudah ada admin lainnya
+            if ($role == 'admin') {
+                $admin_check = $conn->query("SELECT * FROM users WHERE role = 'admin'");
+                if ($admin_check->num_rows > 0) {
+                    $error = "Hanya satu pengguna yang dapat menjadi admin.";
+                } else {
+                    // Memasukkan data ke database jika role adalah admin dan belum ada admin
+                    $hashed_password = password_hash($password, PASSWORD_DEFAULT);
+                    $sql = "INSERT INTO users (username, password, role) VALUES ('$username', '$hashed_password', '$role')";
+                    if ($conn->query($sql)) {
+                        header("Location: login.php");
+                        exit;
+                    } else {
+                        $error = "Terjadi kesalahan: " . $conn->error;
+                    }
+                }
+            } else {
+                // Memasukkan data ke database jika role bukan admin
+                $hashed_password = password_hash($password, PASSWORD_DEFAULT);
+                $sql = "INSERT INTO users (username, password, role) VALUES ('$username', '$hashed_password', '$role')";
+                if ($conn->query($sql)) {
+                    header("Location: login.php");
+                    exit;
+                } else {
+                    $error = "Terjadi kesalahan: " . $conn->error;
+                }
+            }
         }
     }
 }
