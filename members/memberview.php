@@ -138,12 +138,46 @@ foreach ($classes as $class) {
                     </div>
                     <div>
                         <h4 class="font-medium text-green-800">Membership Aktif</h4>
-                        <p class="text-sm text-green-600">Pembayaran berikutnya: 20 Mei 2025</p>
                     </div>
                 </div>
             </div>
 
             <div class="border rounded-lg overflow-hidden">
+
+                <div class="p-4 bg-gray-50">
+                    <div class="flex justify-between mb-3">
+                        <div>
+                            <div class="text-sm text-gray-500">Paket</div>
+                            <div class="font-medium">Kelas 4X</div>
+                        </div>
+                        <div>
+                            <div class="text-sm text-gray-500">Harga</div>
+                            <div class="font-medium">Rp 300,000</div>
+                        </div>
+                    </div>
+                    <div class="flex justify-end">
+                        <button
+                            class="bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded-md text-sm">Perpanjang</button>
+                    </div>
+                </div>
+
+                <div class="p-4 bg-gray-50">
+                    <div class="flex justify-between mb-3">
+                        <div>
+                            <div class="text-sm text-gray-500">Paket</div>
+                            <div class="font-medium">Kelas 8X</div>
+                        </div>
+                        <div>
+                            <div class="text-sm text-gray-500">Harga</div>
+                            <div class="font-medium">Rp 400,000</div>
+                        </div>
+                    </div>
+                    <div class="flex justify-end">
+                        <button
+                            class="bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded-md text-sm">Perpanjang</button>
+                    </div>
+                </div>
+
                 <div class="p-4 bg-gray-50">
                     <div class="flex justify-between mb-3">
                         <div>
@@ -160,41 +194,10 @@ foreach ($classes as $class) {
                             class="bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded-md text-sm">Perpanjang</button>
                     </div>
                 </div>
+
             </div>
         </section>
 
-        <!-- Next Class -->
-        <section class="bg-white p-4 shadow-sm mb-4">
-            <h3 class="text-md font-semibold mb-3">Kelas Selanjutnya</h3>
-            <div class="border rounded-lg overflow-hidden">
-                <div class="px-4 py-3 bg-red-600 text-white flex justify-between items-center">
-                    <div class="flex items-center">
-                        <i class="fas fa-fire mr-2"></i>
-                        <span class="font-medium">Advanced Technique</span>
-                    </div>
-                    <div class="text-xs bg-red-800 px-2 py-1 rounded-full">Hari Ini</div>
-                </div>
-                <div class="p-4 bg-gray-50">
-                    <div class="flex justify-between mb-3">
-                        <div>
-                            <div class="text-sm text-gray-500">Pelatih</div>
-                            <div class="font-medium">Sarah Nguyen</div>
-                        </div>
-                        <div>
-                            <div class="text-sm text-gray-500">Jam</div>
-                            <div class="font-medium">16:30 - 18:00</div>
-                        </div>
-                    </div>
-                    <div class="flex justify-end">
-                        <button
-                            class="bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded-md text-sm flex items-center">
-                            <i class="fas fa-qrcode mr-2"></i>
-                            Check-in
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </section>
 
 
 <section id="schedule" class="bg-white p-4 shadow-sm mb-4">

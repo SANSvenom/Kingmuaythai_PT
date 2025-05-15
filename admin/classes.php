@@ -64,6 +64,7 @@ foreach ($classes as $class) {
 
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -74,34 +75,39 @@ foreach ($classes as $class) {
         .table-cell {
             padding: 8px 16px;
         }
+
         .form-input {
             padding: 10px;
             width: 100%;
             border: 1px solid #ddd;
             border-radius: 4px;
         }
+
         .modal-content {
             width: 100%;
             max-width: 500px;
             margin: 0 auto;
             padding: 20px;
         }
+
         .modal-header {
             font-size: 20px;
             font-weight: bold;
             margin-bottom: 10px;
         }
+
         .modal-footer {
             margin-top: 20px;
             text-align: right;
         }
     </style>
 </head>
+
 <body class="bg-gray-100 font-sans">
     <div class="flex h-screen">
 
-    <?php include '../partials/sidebar.php'; ?>
-        
+        <?php include '../partials/sidebar.php'; ?>
+
         <!-- Main Content -->
         <div class="flex-1 flex flex-col overflow-hidden">
             <!-- Top Navigation -->
@@ -124,7 +130,8 @@ foreach ($classes as $class) {
                         <div class="bg-white shadow overflow-hidden rounded-lg mb-6">
                             <div class="px-4 py-5 border-b border-gray-200 sm:px-6 flex justify-between items-center">
                                 <h3 class="text-lg leading-6 font-medium text-gray-900">Jadwal Kelas Mingguan</h3>
-                                <button id="add-class-btn" class="bg-red-600 hover:bg-red-700 text-white rounded-md px-3 py-2 text-sm font-medium flex items-center">
+                                <button id="add-class-btn"
+                                    class="bg-red-600 hover:bg-red-700 text-white rounded-md px-3 py-2 text-sm font-medium flex items-center">
                                     <i class="fas fa-plus mr-2"></i>Tambah Kelas
                                 </button>
                             </div>
@@ -132,10 +139,17 @@ foreach ($classes as $class) {
                                 <table class="min-w-full divide-y divide-gray-200">
                                     <thead class="bg-red-50">
                                         <tr>
-                                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-red-700 uppercase tracking-wider">Hari</th>
-                                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-red-700 uppercase tracking-wider">Pelatih</th>
-                                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-red-700 uppercase tracking-wider">Jam</th>
-                                            <th scope="col" class="relative px-6 py-3"><span class="sr-only">Aksi</span></th>
+                                            <th scope="col"
+                                                class="px-6 py-3 text-left text-xs font-medium text-red-700 uppercase tracking-wider">
+                                                Hari</th>
+                                            <th scope="col"
+                                                class="px-6 py-3 text-left text-xs font-medium text-red-700 uppercase tracking-wider">
+                                                Pelatih</th>
+                                            <th scope="col"
+                                                class="px-6 py-3 text-left text-xs font-medium text-red-700 uppercase tracking-wider">
+                                                Jam</th>
+                                            <th scope="col" class="relative px-6 py-3"><span class="sr-only">Aksi</span>
+                                            </th>
                                         </tr>
                                     </thead>
                                     <tbody class="bg-white divide-y divide-gray-200" id="class-schedule-body">
@@ -149,10 +163,12 @@ foreach ($classes as $class) {
                                                     <td class="table-cell"><?php echo $class['coach']; ?></td>
                                                     <td class="table-cell"><?php echo $class['time']; ?></td>
                                                     <td class="table-cell text-right">
-                                                        <button class="text-blue-600 hover:text-blue-900 mr-3 edit-btn" data-id="<?php echo $class['id']; ?>">
+                                                        <button class="text-blue-600 hover:text-blue-900 mr-3 edit-btn"
+                                                            data-id="<?php echo $class['id']; ?>">
                                                             <i class="fas fa-edit"></i>
                                                         </button>
-                                                        <button class="text-red-600 hover:text-red-900 delete-btn" data-id="<?php echo $class['id']; ?>">
+                                                        <button class="text-red-600 hover:text-red-900 delete-btn"
+                                                            data-id="<?php echo $class['id']; ?>">
                                                             <i class="fas fa-trash"></i>
                                                         </button>
                                                     </td>
@@ -165,14 +181,16 @@ foreach ($classes as $class) {
                         </div>
 
                         <!-- Add/Edit Class Modal -->
-                        <div id="class-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden flex items-center justify-center z-50">
+                        <div id="class-modal"
+                            class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden flex items-center justify-center z-50">
                             <div class="modal-content bg-white rounded-lg shadow-xl">
-                                <div class="modal-header">Tambah Kelas</div>
+                                <div id="modal-title" class="modal-header">Tambah Kelas</div>
                                 <div class="px-6 py-4">
                                     <form id="class-form">
                                         <input type="hidden" id="class-id">
                                         <div class="mb-4">
-                                            <label for="day" class="block text-sm font-medium text-gray-700">Hari</label>
+                                            <label for="day"
+                                                class="block text-sm font-medium text-gray-700">Hari</label>
                                             <select id="day" name="day" class="form-input">
                                                 <option value="SENIN">SENIN</option>
                                                 <option value="SELASA">SELASA</option>
@@ -183,22 +201,25 @@ foreach ($classes as $class) {
                                             </select>
                                         </div>
                                         <div class="mb-4">
-                                            <label for="coach" class="block text-sm font-medium text-gray-700">Pelatih</label>
+                                            <label for="coach"
+                                                class="block text-sm font-medium text-gray-700">Pelatih</label>
                                             <input type="text" id="coach" name="coach" class="form-input">
                                         </div>
                                         <div class="mb-4">
-                                            <label for="time" class="block text-sm font-medium text-gray-700">Jam</label>
+                                            <label for="time"
+                                                class="block text-sm font-medium text-gray-700">Jam</label>
                                             <input type="time" id="time" name="time" class="form-input">
                                         </div>
                                     </form>
                                 </div>
                                 <div class="modal-footer">
-                                    <button id="cancel-btn" class="bg-white py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 mr-3">Batal</button>
-                                    <button id="save-btn" class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">Simpan</button>
+                                    <button id="cancel-btn"
+                                        class="bg-white py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 mr-3">Batal</button>
+                                    <button id="save-btn"
+                                        class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">Simpan</button>
                                 </div>
                             </div>
                         </div>
-
                     </div>
                 </div>
             </main>
@@ -226,16 +247,19 @@ foreach ($classes as $class) {
                     const coach = row.cells[1].textContent.trim();
                     const time = row.cells[2].textContent.trim();
 
+                    // Mengisi data pada modal
                     document.getElementById('modal-title').textContent = "Edit Kelas";
                     document.getElementById('class-id').value = id;
                     document.getElementById('day').value = day;
                     document.getElementById('coach').value = coach;
                     document.getElementById('time').value = time;
 
+                    // Menampilkan modal
                     classModal.classList.remove('hidden');
                     classModal.classList.add('flex');
                 });
             });
+
 
             // Delete Button
             document.querySelectorAll('.delete-btn').forEach(btn => {
@@ -293,7 +317,9 @@ foreach ($classes as $class) {
                 classModal.classList.add('hidden');
                 classModal.classList.remove('flex');
             });
+
         });
     </script>
 </body>
+
 </html>

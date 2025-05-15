@@ -5,7 +5,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $username = $conn->real_escape_string($_POST["username"]);
     $password = $_POST["password"];
     $confirm_password = $_POST["confirm_password"];
-    $role = $_POST["role"];  // Ambil role dari form
+    $role = $_POST["role"];
+    $phone = $_POST["phone"];  // Ambil nomor HP dari form
 
     // Validasi kecocokan password
     if ($password !== $confirm_password) {
@@ -24,7 +25,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 } else {
                     // Memasukkan data ke database jika role adalah admin dan belum ada admin
                     $hashed_password = password_hash($password, PASSWORD_DEFAULT);
-                    $sql = "INSERT INTO users (username, password, role) VALUES ('$username', '$hashed_password', '$role')";
+                    $sql = "INSERT INTO users (username, password, role, phone) VALUES ('$username', '$hashed_password', '$role', '$phone')";
                     if ($conn->query($sql)) {
                         header("Location: login.php");
                         exit;
@@ -35,7 +36,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             } else {
                 // Memasukkan data ke database jika role bukan admin
                 $hashed_password = password_hash($password, PASSWORD_DEFAULT);
-                $sql = "INSERT INTO users (username, password, role) VALUES ('$username', '$hashed_password', '$role')";
+                $sql = "INSERT INTO users (username, password, role, phone) VALUES ('$username', '$hashed_password', '$role', '$phone')";
                 if ($conn->query($sql)) {
                     header("Location: login.php");
                     exit;
@@ -46,6 +47,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         }
     }
 }
+
 ?>
 
 <!DOCTYPE html>
@@ -85,6 +87,11 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
             <div class="input-group">
                 <input type="password" name="confirm_password" placeholder="Konfirmasi Password" required>
+            </div>
+
+                    <!-- Input untuk nomor HP -->
+            <div class="input-group">
+                <input type="text" name="phone" placeholder="Nomor HP" required>
             </div>
 
             <div class="input-group">
