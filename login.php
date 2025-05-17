@@ -1,57 +1,60 @@
 <?php
 session_start();
-require 'db.php'; // Pastikan db.php berisi pengaturan koneksi database Anda
+require __DIR__ . '/config/db.php'; // This returns a PDO connection
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $username = $_POST["username"];
     $password = $_POST["password"];
 
-    // Query untuk mendapatkan data pengguna
-    $sql = "SELECT * FROM users WHERE username = ?";
-    $stmt = $conn->prepare($sql);
-    $stmt->bind_param("s", $username); // Bind parameter untuk menghindari SQL Injection
-    $stmt->execute();
-    $result = $stmt->get_result();
+    try {
+        // Query untuk mendapatkan data pengguna
+        $sql = "SELECT * FROM users WHERE username = ?";
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute([$username]); // PDO uses execute with array parameters
 
-    // Jika user ditemukan
-    if ($result->num_rows === 1) {
-        $user = $result->fetch_assoc();
-        // Verifikasi password yang di-hash
-        if (password_verify($password, $user["password"])) {
-            // Menyimpan data login dalam sesi
-            $_SESSION["username"] = $user["username"];
-            $_SESSION["role"] = $user["role"];
+        // Jika user ditemukan
+        if ($stmt->rowCount() === 1) {
+            $user = $stmt->fetch();
+            
+            // Verifikasi password yang di-hash
+            if (password_verify($password, $user["password"])) {
+                // Menyimpan data login dalam sesi
+                $_SESSION["username"] = $user["username"];
+                $_SESSION["role"] = $user["role"];
+                $_SESSION["user_id"] = $user["id"]; // Store user ID
 
-            // Jika user adalah admin, cek apakah sudah ada admin lain
-            if ($user["role"] == 'admin') {
-                // Cek apakah sudah ada admin lainnya
-                $admin_check = "SELECT * FROM users WHERE role = 'admin' AND username != ?";
-                $admin_stmt = $conn->prepare($admin_check);
-                $admin_stmt->bind_param("s", $username);
-                $admin_stmt->execute();
-                $admin_result = $admin_stmt->get_result();
-
-                if ($admin_result->num_rows > 0) {
-                    // Jika sudah ada admin lain, jangan izinkan login
-                    $error = "Hanya satu pengguna yang dapat menjadi admin. Admin lain sudah ada.";
+                // Jika user adalah admin, cek apakah sudah ada admin lain
+                if ($user["role"] == 'admin') {
+                    // Cek apakah sudah ada admin lainnya
+                    $admin_check = "SELECT * FROM users WHERE role = 'admin' AND id != ?";
+                    $admin_stmt = $pdo->prepare($admin_check);
+                    $admin_stmt->execute([$user["id"]]);
+                    
+                    if ($admin_stmt->rowCount() > 0) {
+                        // Jika sudah ada admin lain, jangan izinkan login
+                        $error = "Hanya satu pengguna yang dapat menjadi admin. Admin lain sudah ada.";
+                        session_destroy(); // Clear the session
+                    } else {
+                        // Redirect ke halaman dashboard admin
+                        header("Location: admin/dashboard.php");
+                        exit();
+                    }
                 } else {
-                    // Redirect ke halaman dashboard admin
-                    header("Location: admin/dashboard.php");
+                    // Jika bukan admin, redirect ke halaman member view
+                    header("Location: members/memberview.php");
+                    exit();
                 }
             } else {
-                // Jika bukan admin, redirect ke halaman member view
-                header("Location: members/memberview.php");
+                $error = "Password salah!";
             }
-            exit();
         } else {
-            $error = "Password salah!";
+            $error = "User tidak ditemukan!";
         }
-    } else {
-        $error = "User tidak ditemukan!";
+    } catch (PDOException $e) {
+        $error = "Database error: " . $e->getMessage();
     }
 }
 ?>
-
 
 
 

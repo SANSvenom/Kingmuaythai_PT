@@ -1,20 +1,40 @@
 <?php
 session_start();
 
-// Cek jika pengguna sudah login
-if (!isset($_SESSION['username'])) {
-    header('Location: login.php'); // Arahkan ke halaman login jika belum login
+
+
+// Pastikan hanya member yang bisa mengakses
+if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'member') {
+    header('Location: ../login.php');
     exit();
 }
 
-// Ambil username dari sesi
-$username = $_SESSION['username']; // Username diambil dari session yang telah diset saat login
+// Gunakan user_id untuk identifikasi yang lebih aman
+$user_id = $_SESSION['user_id'];
+
+// Koneksi database
+require_once '../config/db.php';
+
+// Ambil data member dari database
+$stmt = $pdo->prepare("SELECT * FROM users WHERE id = ?");
+$stmt->execute([$user_id]);
+$user = $stmt->fetch();
+
+// Pastikan data user ada
+if (!$user) {
+    session_destroy();
+    header('Location: ../login.php');
+    exit();
+}
+
+// Gunakan nama dari database, bukan session
+$username = $user['username'];
 
 // Koneksi ke database untuk mendapatkan jadwal
-$host = 'localhost'; 
-$dbname = 'kingmuaythai_db'; 
-$usernameDb = 'root'; 
-$password = ''; 
+$host = 'localhost';
+$dbname = 'kingmuaythai_db';
+$usernameDb = 'root';
+$password = '';
 
 try {
     // Membuat koneksi PDO
@@ -35,6 +55,61 @@ $groupedClasses = [];
 foreach ($classes as $class) {
     $groupedClasses[$class['day']][] = $class;
 }
+
+    // Cek status membership - pastikan mengacu ke user yang login
+    $membership_stmt = $pdo->prepare("SELECT um.*, mp.name as package_name 
+                                    FROM user_memberships um
+                                    JOIN membership_packages mp ON um.package_id = mp.id
+                                    WHERE um.user_id = ? AND um.status = 'active' AND um.end_date > NOW()");
+    $membership_stmt->execute([$user_id]);
+    $active_membership = $membership_stmt->fetch();
+
+// Ambil data paket membership
+$packages_stmt = $pdo->query("SELECT * FROM membership_packages");
+$packages = $packages_stmt->fetchAll(PDO::FETCH_ASSOC);
+
+// Ambil riwayat pembayaran
+$payments_stmt = $pdo->prepare("SELECT p.*, mp.name as package_name 
+                                FROM payments p
+                                JOIN membership_packages mp ON p.package_id = mp.id
+                                WHERE user_id = ? ORDER BY payment_date DESC LIMIT 5");
+$payments_stmt->execute([$user_id]);
+$payments = $payments_stmt->fetchAll(PDO::FETCH_ASSOC);
+
+// Proses form pembayaran jika ada
+if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['submit_payment'])) {
+    $package_id = $_POST['package_id'];
+    $proof_image = '';
+
+    // Handle file upload
+    if (isset($_FILES['proof_image']) && $_FILES['proof_image']['error'] == UPLOAD_ERR_OK) {
+        $upload_dir = '../uploads/payments/';
+        $file_name = uniqid() . '_' . basename($_FILES['proof_image']['name']);
+        $target_file = $upload_dir . $file_name;
+
+        if (move_uploaded_file($_FILES['proof_image']['tmp_name'], $target_file)) {
+            $proof_image = $file_name;
+        }
+    }
+
+    // Dapatkan detail paket
+    $package_stmt = $pdo->prepare("SELECT * FROM membership_packages WHERE id = ?");
+    $package_stmt->execute([$package_id]);
+    $package = $package_stmt->fetch(PDO::FETCH_ASSOC);
+
+    if ($package) {
+        // Buat transaksi pembayaran
+        $payment_stmt = $pdo->prepare("INSERT INTO payments 
+                                        (user_id, package_id, amount, status, proof_image) 
+                                        VALUES (?, ?, ?, 'pending', ?)");
+        $payment_stmt->execute([$user_id, $package_id, $package['price'], $proof_image]);
+
+        $_SESSION['message'] = "Pembayaran berhasil dikirim. Tunggu konfirmasi admin.";
+        header("Location: memberview.php");
+        exit();
+    }
+}
+
 ?>
 
 
@@ -51,6 +126,40 @@ foreach ($classes as $class) {
     <title>King Muaythai - Member App</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+
+    <style>
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 100;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.4);
+        }
+        .modal-content {
+            background-color: #fefefe;
+            margin: 15% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 500px;
+            border-radius: 8px;
+        }
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+        }
+        .close:hover {
+            color: black;
+            cursor: pointer;
+        }
+    </style>
+
 </head>
 
 <body class="bg-gray-100 text-gray-800">
@@ -88,14 +197,41 @@ foreach ($classes as $class) {
                     <p class="text-lg font-bold text-red-600">24</p>
                     <p class="text-xs text-gray-600">Latihan Bulan Ini</p>
                 </div>
+
+
                 <div class="text-center border-l border-r border-gray-300 px-4">
                     <p class="text-lg font-bold text-red-600">148</p>
                     <p class="text-xs text-gray-600">Total Latihan</p>
                 </div>
+
+
                 <div class="text-center">
-                    <p class="text-lg font-bold text-green-600">Aktif</p>
-                    <p class="text-xs text-gray-600">Status Membership</p>
+                <?php if ($active_membership): ?>
+                    <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+                        <div class="flex items-center">
+                            
+                            <div>
+                                <p class="text-lg font-bold text-green-600">Aktif</p>
+                                <p class="text-xs text-gray-600">Status Membership</p>
+                            </div>
+
+                        </div>
+                    </div>
+                    <?php else: ?>
+
+                    <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                        <div class="flex items-center">
+                        
+                            <div>
+                                <h4 class="font-medium text-yellow-800">Tidak Aktif</h4>
+                                <p class="text-xs text-gray-600">Status Membership</p>
+                            </div>
+                        </div>
+                    </div>
+                    <?php endif; ?>
+
                 </div>
+
             </div>
         </section>
 
@@ -128,154 +264,264 @@ foreach ($classes as $class) {
             </a>
         </section>
 
-                <!-- Payment -->
-        <section id="payment" class="bg-white p-4 shadow-sm mb-4">
-            <h3 class="text-md font-semibold mb-3">Informasi Pembayaran</h3>
-            <div class="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
-                <div class="flex items-center">
-                    <div class="h-10 w-10 rounded-full bg-green-100 flex items-center justify-center mr-3">
-                        <i class="fas fa-check text-green-600"></i>
-                    </div>
-                    <div>
-                        <h4 class="font-medium text-green-800">Membership Aktif</h4>
-                    </div>
+        <!-- Payment Section - Diubah -->
+    <section id="payment" class="bg-white p-4 shadow-sm mb-4">
+        <h3 class="text-md font-semibold mb-3">Informasi Pembayaran</h3>
+        
+        <?php if ($active_membership): ?>
+        <div class="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
+            <div class="flex items-center">
+                <div class="h-10 w-10 rounded-full bg-green-100 flex items-center justify-center mr-3">
+                    <i class="fas fa-check text-green-600"></i>
+                </div>
+                <div>
+                    <h4 class="font-medium text-green-800">Membership Aktif</h4>
+                    <p class="text-sm text-green-600">Paket: <?= htmlspecialchars($active_membership['package_name']) ?></p>
+                    <p class="text-sm text-green-600">Berlaku hingga: <?= date('d M Y', strtotime($active_membership['end_date'])) ?></p>
                 </div>
             </div>
+        </div>
+        <?php else: ?>
+        <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+            <div class="flex items-center">
+                <div class="h-10 w-10 rounded-full bg-yellow-100 flex items-center justify-center mr-3">
+                    <i class="fas fa-exclamation text-yellow-600"></i>
+                </div>
+                <div>
+                    <h4 class="font-medium text-yellow-800">Membership Tidak Aktif</h4>
+                    <p class="text-sm text-yellow-600">Silakan pilih paket membership untuk melanjutkan</p>
+                </div>
+            </div>
+        </div>
+        <?php endif; ?>
 
-            <div class="border rounded-lg overflow-hidden">
-
-                <div class="p-4 bg-gray-50">
-                    <div class="flex justify-between mb-3">
-                        <div>
-                            <div class="text-sm text-gray-500">Paket</div>
-                            <div class="font-medium">Kelas 4X</div>
-                        </div>
-                        <div>
-                            <div class="text-sm text-gray-500">Harga</div>
-                            <div class="font-medium">Rp 300,000</div>
-                        </div>
+        <div class="border rounded-lg overflow-hidden">
+            <?php foreach ($packages as $package): ?>
+            <div class="p-4 bg-gray-50 border-b">
+                <div class="flex justify-between mb-3">
+                    <div>
+                        <div class="text-sm text-gray-500">Paket</div>
+                        <div class="font-medium"><?= htmlspecialchars($package['name']) ?></div>
+                        <div class="text-xs text-gray-500"><?= htmlspecialchars($package['description']) ?></div>
                     </div>
-                    <div class="flex justify-end">
-                        <button
-                            class="bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded-md text-sm">Perpanjang</button>
+                    <div>
+                        <div class="text-sm text-gray-500">Harga</div>
+                        <div class="font-medium">Rp <?= number_format($package['price'], 0, ',', '.') ?></div>
                     </div>
                 </div>
+                <div class="flex justify-end">
+                    <button onclick="openPaymentModal(<?= $package['id'] ?>, '<?= htmlspecialchars($package['name']) ?>', <?= $package['price'] ?>)"
+                        class="bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded-md text-sm">
+                        Beli Sekarang
+                    </button>
+                </div>
+            </div>
+            <?php endforeach; ?>
+        </div>
 
-                <div class="p-4 bg-gray-50">
-                    <div class="flex justify-between mb-3">
-                        <div>
-                            <div class="text-sm text-gray-500">Paket</div>
-                            <div class="font-medium">Kelas 8X</div>
-                        </div>
-                        <div>
-                            <div class="text-sm text-gray-500">Harga</div>
-                            <div class="font-medium">Rp 400,000</div>
-                        </div>
-                    </div>
-                    <div class="flex justify-end">
-                        <button
-                            class="bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded-md text-sm">Perpanjang</button>
+        <!-- Riwayat Pembayaran -->
+        <?php if (!empty($payments)): ?>
+        <div class="mt-6">
+            <h4 class="text-md font-semibold mb-2">Riwayat Pembayaran</h4>
+            <div class="overflow-x-auto">
+                <table class="min-w-full bg-white">
+                    <thead>
+                        <tr class="bg-gray-50 text-xs">
+                            <th class="px-3 py-2 text-left">Tanggal</th>
+                            <th class="px-3 py-2 text-left">Paket</th>
+                            <th class="px-3 py-2 text-left">Jumlah</th>
+                            <th class="px-3 py-2 text-left">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($payments as $payment): ?>
+                        <tr class="border-b">
+                            <td class="px-3 py-3 text-sm"><?= date('d M Y', strtotime($payment['payment_date'])) ?></td>
+                            <td class="px-3 py-3 text-sm"><?= htmlspecialchars($payment['package_name']) ?></td>
+                            <td class="px-3 py-3 text-sm">Rp <?= number_format($payment['amount'], 0, ',', '.') ?></td>
+                            <td class="px-3 py-3">
+                                <?php 
+                                $status_class = '';
+                                switch ($payment['status']) {
+                                    case 'paid': $status_class = 'bg-green-100 text-green-800'; break;
+                                    case 'pending': $status_class = 'bg-yellow-100 text-yellow-800'; break;
+                                    case 'rejected': $status_class = 'bg-red-100 text-red-800'; break;
+                                    default: $status_class = 'bg-gray-100 text-gray-800';
+                                }
+                                ?>
+                                <span class="px-2 py-1 text-xs rounded-full <?= $status_class ?>">
+                                    <?= ucfirst($payment['status']) ?>
+                                </span>
+                            </td>
+                        </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <?php endif; ?>
+    </section>
+
+    <!-- Payment Modal -->
+    <div id="paymentModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h3 class="text-lg font-semibold mb-4" id="modalTitle">Pembayaran Paket</h3>
+            
+            <form id="paymentForm" method="post" enctype="multipart/form-data">
+                <input type="hidden" name="package_id" id="package_id">
+                
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-bold mb-2">Paket:</label>
+                    <p class="text-gray-900" id="packageName"></p>
+                </div>
+                
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-bold mb-2">Harga:</label>
+                    <p class="text-gray-900" id="packagePrice"></p>
+                </div>
+                
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-bold mb-2">Rekening Pembayaran:</label>
+                    <div class="bg-gray-100 p-3 rounded-lg">
+                        <p class="font-medium">Bank BCA</p>
+                        <p class="text-lg font-bold">1234567890</p>
+                        <p class="text-sm">a/n King Muaythai</p>
                     </div>
                 </div>
+                
+                    <div class="mb-4">
+                        <label class="block text-gray-700 text-sm font-bold mb-2" for="proof_image">
+                            Upload Bukti Transfer:
+                        </label>
+                        <input type="file" name="proof_image" id="proof_image" 
+                            class="block w-full text-sm text-gray-500
+                                    file:mr-4 file:py-2 file:px-4
+                                    file:rounded-md file:border-0
+                                    file:text-sm file:font-semibold
+                                    file:bg-red-50 file:text-red-700
+                                    hover:file:bg-red-100" required>
+                        <p class="text-xs text-gray-500 mt-1">Format: JPG, PNG (max 2MB)</p>
+                    </div>
+                
+                <div class="flex justify-end">
+                    <button type="button" onclick="document.getElementById('paymentModal').style.display='none'" 
+                            class="bg-gray-300 hover:bg-gray-400 text-gray-800 py-2 px-4 rounded mr-2">
+                        Batal
+                    </button>
+                    <button type="submit" name="submit_payment"
+                            class="bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded">
+                        Kirim Pembayaran
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
 
-                <div class="p-4 bg-gray-50">
-                    <div class="flex justify-between mb-3">
-                        <div>
-                            <div class="text-sm text-gray-500">Paket</div>
-                            <div class="font-medium">Kelas Unlimited</div>
-                        </div>
-                        <div>
-                            <div class="text-sm text-gray-500">Harga</div>
-                            <div class="font-medium">Rp 500,000</div>
-                        </div>
-                    </div>
-                    <div class="flex justify-end">
-                        <button
-                            class="bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded-md text-sm">Perpanjang</button>
-                    </div>
+    <script>
+        // Modal functions
+        function openPaymentModal(packageId, packageName, packagePrice) {
+            document.getElementById('package_id').value = packageId;
+            document.getElementById('packageName').textContent = packageName;
+            document.getElementById('packagePrice').textContent = 'Rp ' + packagePrice.toLocaleString('id-ID');
+            document.getElementById('paymentModal').style.display = 'block';
+        }
+        
+        // Close modal when clicking X
+        document.querySelector('.close').onclick = function() {
+            document.getElementById('paymentModal').style.display = 'none';
+        }
+        
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            if (event.target == document.getElementById('paymentModal')) {
+                document.getElementById('paymentModal').style.display = 'none';
+            }
+        }
+    </script>
+
+
+
+        <section id="schedule" class="bg-white p-4 shadow-sm mb-4">
+            <div class="flex justify-between items-center mb-3">
+                <h3 class="text-md font-semibold">Jadwal</h3>
+            </div>
+
+            <!-- Grid with 2 columns -->
+            <div class="grid grid-cols-2 gap-4">
+                <!-- Column 1: Senin, Selasa, Rabu -->
+                <div>
+                    <?php
+                    $days = ['SENIN', 'SELASA', 'RABU']; // Hari untuk kolom pertama
+                    foreach ($days as $day): ?>
+                        <div class="font-semibold text-lg"><?= $day ?></div>
+                        <?php
+                        if (isset($groupedClasses[$day])):
+                            foreach ($groupedClasses[$day] as $class): ?>
+                                <div class="flex items-center p-3 border rounded-lg bg-gray-50 mb-3">
+                                    <div class="h-10 w-10 rounded-full bg-red-100 flex items-center justify-center mr-3">
+                                        <i class="fas fa-dumbbell text-red-600"></i>
+                                    </div>
+                                    <div class="flex-1">
+                                        <div class="flex justify-between">
+                                            <h4 class="font-medium"><?= htmlspecialchars($class['coach']) ?></h4>
+                                            <span
+                                                class="text-xs bg-gray-200 px-2 py-1 rounded-full"><?= htmlspecialchars($class['time']) ?></span>
+                                        </div>
+                                        <div class="flex text-sm text-gray-500">
+                                            <span class="mr-3"><i class="far fa-clock mr-1"></i>
+                                                <?= htmlspecialchars($class['time']) ?></span>
+                                            <span><i class="far fa-user mr-1"></i> <?= htmlspecialchars($class['coach']) ?></span>
+                                        </div>
+                                    </div>
+                                </div>
+                            <?php endforeach;
+                        else: ?>
+                            <p class="text-gray-500">Tidak ada kelas yang dijadwalkan untuk <?= $day ?>.</p>
+                        <?php endif; ?>
+                    <?php endforeach; ?>
                 </div>
 
+                <!-- Column 2: Kamis, Jumat, Sabtu -->
+                <div>
+                    <?php
+                    $days = ['KAMIS', 'JUMAT', 'SABTU']; // Hari untuk kolom kedua
+                    foreach ($days as $day): ?>
+                        <div class="font-semibold text-lg"><?= $day ?></div>
+                        <?php
+                        if (isset($groupedClasses[$day])):
+                            foreach ($groupedClasses[$day] as $class): ?>
+                                <div class="flex items-center p-3 border rounded-lg bg-gray-50 mb-3">
+                                    <div class="h-10 w-10 rounded-full bg-red-100 flex items-center justify-center mr-3">
+                                        <i class="fas fa-dumbbell text-red-600"></i>
+                                    </div>
+                                    <div class="flex-1">
+                                        <div class="flex justify-between">
+                                            <h4 class="font-medium"><?= htmlspecialchars($class['coach']) ?></h4>
+                                            <span
+                                                class="text-xs bg-gray-200 px-2 py-1 rounded-full"><?= htmlspecialchars($class['time']) ?></span>
+                                        </div>
+                                        <div class="flex text-sm text-gray-500">
+                                            <span class="mr-3"><i class="far fa-clock mr-1"></i>
+                                                <?= htmlspecialchars($class['time']) ?></span>
+                                            <span><i class="far fa-user mr-1"></i> <?= htmlspecialchars($class['coach']) ?></span>
+                                        </div>
+                                    </div>
+                                </div>
+                            <?php endforeach;
+                        else: ?>
+                            <p class="text-gray-500">Tidak ada kelas yang dijadwalkan untuk <?= $day ?>.</p>
+                        <?php endif; ?>
+                    <?php endforeach; ?>
+                </div>
             </div>
         </section>
 
 
 
-<section id="schedule" class="bg-white p-4 shadow-sm mb-4">
-    <div class="flex justify-between items-center mb-3">
-        <h3 class="text-md font-semibold">Jadwal</h3>
-    </div>
-
-    <!-- Grid with 2 columns -->
-    <div class="grid grid-cols-2 gap-4">
-        <!-- Column 1: Senin, Selasa, Rabu -->
-        <div>
-            <?php 
-            $days = ['SENIN', 'SELASA', 'RABU']; // Hari untuk kolom pertama
-            foreach ($days as $day): ?>
-                <div class="font-semibold text-lg"><?= $day ?></div>
-                <?php 
-                if (isset($groupedClasses[$day])):
-                    foreach ($groupedClasses[$day] as $class): ?>
-                        <div class="flex items-center p-3 border rounded-lg bg-gray-50 mb-3">
-                            <div class="h-10 w-10 rounded-full bg-red-100 flex items-center justify-center mr-3">
-                                <i class="fas fa-dumbbell text-red-600"></i>
-                            </div>
-                            <div class="flex-1">
-                                <div class="flex justify-between">
-                                    <h4 class="font-medium"><?= htmlspecialchars($class['coach']) ?></h4>
-                                    <span class="text-xs bg-gray-200 px-2 py-1 rounded-full"><?= htmlspecialchars($class['time']) ?></span>
-                                </div>
-                                <div class="flex text-sm text-gray-500">
-                                    <span class="mr-3"><i class="far fa-clock mr-1"></i> <?= htmlspecialchars($class['time']) ?></span>
-                                    <span><i class="far fa-user mr-1"></i> <?= htmlspecialchars($class['coach']) ?></span>
-                                </div>
-                            </div>
-                        </div>
-                    <?php endforeach; 
-                else: ?>
-                    <p class="text-gray-500">Tidak ada kelas yang dijadwalkan untuk <?= $day ?>.</p>
-                <?php endif; ?>
-            <?php endforeach; ?>
-        </div>
-
-        <!-- Column 2: Kamis, Jumat, Sabtu -->
-        <div>
-            <?php 
-            $days = ['KAMIS', 'JUMAT', 'SABTU']; // Hari untuk kolom kedua
-            foreach ($days as $day): ?>
-                <div class="font-semibold text-lg"><?= $day ?></div>
-                <?php 
-                if (isset($groupedClasses[$day])):
-                    foreach ($groupedClasses[$day] as $class): ?>
-                        <div class="flex items-center p-3 border rounded-lg bg-gray-50 mb-3">
-                            <div class="h-10 w-10 rounded-full bg-red-100 flex items-center justify-center mr-3">
-                                <i class="fas fa-dumbbell text-red-600"></i>
-                            </div>
-                            <div class="flex-1">
-                                <div class="flex justify-between">
-                                    <h4 class="font-medium"><?= htmlspecialchars($class['coach']) ?></h4>
-                                    <span class="text-xs bg-gray-200 px-2 py-1 rounded-full"><?= htmlspecialchars($class['time']) ?></span>
-                                </div>
-                                <div class="flex text-sm text-gray-500">
-                                    <span class="mr-3"><i class="far fa-clock mr-1"></i> <?= htmlspecialchars($class['time']) ?></span>
-                                    <span><i class="far fa-user mr-1"></i> <?= htmlspecialchars($class['coach']) ?></span>
-                                </div>
-                            </div>
-                        </div>
-                    <?php endforeach; 
-                else: ?>
-                    <p class="text-gray-500">Tidak ada kelas yang dijadwalkan untuk <?= $day ?>.</p>
-                <?php endif; ?>
-            <?php endforeach; ?>
-        </div>
-    </div>
-</section>
 
 
-
-
-
-    <script>
+        <script>
             document.addEventListener('DOMContentLoaded', function () {
                 function loadSchedule() {
                     fetch('api/class_schedule_api.php') // Mengambil data jadwal dari server

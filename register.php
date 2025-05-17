@@ -1,54 +1,58 @@
 <?php
-require 'db.php';
+require __DIR__ . '/config/db.php';
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    $username = $conn->real_escape_string($_POST["username"]);
+    // Get and sanitize input data
+    $username = trim($_POST["username"]);
     $password = $_POST["password"];
     $confirm_password = $_POST["confirm_password"];
     $role = $_POST["role"];
-    $phone = $_POST["phone"];  // Ambil nomor HP dari form
+    $phone = trim($_POST["phone"]);
 
-    // Validasi kecocokan password
+    // Validate password match
     if ($password !== $confirm_password) {
         $error = "Password dan konfirmasi password tidak cocok!";
     } else {
-        // Cek apakah username sudah digunakan
-        $check = $conn->query("SELECT * FROM users WHERE username = '$username'");
-        if ($check->num_rows > 0) {
-            $error = "Username sudah digunakan!";
-        } else {
-            // Jika role adalah admin, cek apakah sudah ada admin lainnya
-            if ($role == 'admin') {
-                $admin_check = $conn->query("SELECT * FROM users WHERE role = 'admin'");
-                if ($admin_check->num_rows > 0) {
-                    $error = "Hanya satu pengguna yang dapat menjadi admin.";
-                } else {
-                    // Memasukkan data ke database jika role adalah admin dan belum ada admin
+        try {
+            // Check if username exists using prepared statement
+            $check = $pdo->prepare("SELECT * FROM users WHERE username = ?");
+            $check->execute([$username]);
+            
+            if ($check->rowCount() > 0) {
+                $error = "Username sudah digunakan!";
+            } else {
+                // If role is admin, check if another admin exists
+                if ($role == 'admin') {
+                    $admin_check = $pdo->query("SELECT * FROM users WHERE role = 'admin'");
+                    if ($admin_check->rowCount() > 0) {
+                        $error = "Hanya satu pengguna yang dapat menjadi admin.";
+                    }
+                }
+
+                if (!isset($error)) {
+                    // Hash password
                     $hashed_password = password_hash($password, PASSWORD_DEFAULT);
-                    $sql = "INSERT INTO users (username, password, role, phone) VALUES ('$username', '$hashed_password', '$role', '$phone')";
-                    if ($conn->query($sql)) {
+                    
+                    // Insert using prepared statement
+                    $sql = "INSERT INTO users (username, password, role, phone) VALUES (?, ?, ?, ?)";
+                    $stmt = $pdo->prepare($sql);
+                    
+                    if ($stmt->execute([$username, $hashed_password, $role, $phone])) {
                         header("Location: login.php");
                         exit;
                     } else {
-                        $error = "Terjadi kesalahan: " . $conn->error;
+                        $error = "Terjadi kesalahan saat mendaftar";
                     }
                 }
-            } else {
-                // Memasukkan data ke database jika role bukan admin
-                $hashed_password = password_hash($password, PASSWORD_DEFAULT);
-                $sql = "INSERT INTO users (username, password, role, phone) VALUES ('$username', '$hashed_password', '$role', '$phone')";
-                if ($conn->query($sql)) {
-                    header("Location: login.php");
-                    exit;
-                } else {
-                    $error = "Terjadi kesalahan: " . $conn->error;
-                }
             }
+        } catch (PDOException $e) {
+            $error = "Database error: " . $e->getMessage();
         }
     }
 }
-
 ?>
+
+
 
 <!DOCTYPE html>
 <html lang="id">
