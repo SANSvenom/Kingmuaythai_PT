@@ -98,6 +98,35 @@ if (!isset($pdo)) {
     $stmt->execute([$search, $status_filter]);
     $payments = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
+    // Proses hapus pembayaran
+if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['delete_payment'])) {
+    $payment_id = $_POST['payment_id'];
+    
+    try {
+        // Mulai transaksi
+        $pdo->beginTransaction();
+        
+        // Hapus referensi di user_memberships terlebih dahulu
+        $stmt = $pdo->prepare("UPDATE user_memberships SET payment_id = NULL WHERE payment_id = ?");
+        $stmt->execute([$payment_id]);
+        
+        // Hapus pembayaran
+        $stmt = $pdo->prepare("DELETE FROM payments WHERE id = ?");
+        $stmt->execute([$payment_id]);
+        
+        $pdo->commit();
+        
+        $_SESSION['message'] = "Pembayaran berhasil dihapus";
+        header("Location: payment.php");
+        exit();
+    } catch (PDOException $e) {
+        $pdo->rollBack();
+        $_SESSION['error'] = "Gagal menghapus pembayaran: " . $e->getMessage();
+        header("Location: payment.php");
+        exit();
+    }
+}
+
     ?>
 
 <!DOCTYPE html>
@@ -226,6 +255,7 @@ if (!isset($pdo)) {
                                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                                 <?= date('d M Y', strtotime($payment['payment_date'])) ?>
                                             </td>
+                                            
                                             <td class="px-6 py-4 whitespace-nowrap">
                                                 <?php 
                                                 $status_class = '';
@@ -240,12 +270,19 @@ if (!isset($pdo)) {
                                                     <?= ucfirst($payment['status']) ?>
                                                 </span>
                                             </td>
+
                                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                                 <div class="flex space-x-2">
                                                     <button onclick="openPaymentDetail(<?= htmlspecialchars(json_encode($payment)) ?>)"
                                                         class="text-blue-600 hover:text-blue-900">
                                                         <i class="fas fa-eye"></i>
                                                     </button>
+                                                    <form method="post" onsubmit="return confirm('Apakah Anda yakin ingin menghapus pembayaran ini?');" class="inline">
+                                                        <input type="hidden" name="payment_id" value="<?= $payment['id'] ?>">
+                                                        <button type="submit" name="delete_payment" class="text-red-600 hover:text-red-900">
+                                                            <i class="fas fa-trash"></i>
+                                                        </button>
+                                                    </form>
                                                     <?php if ($payment['proof_image']): ?>
                                                     <a href="../uploads/payments/<?= htmlspecialchars($payment['proof_image']) ?>" 
                                                         download
@@ -254,7 +291,8 @@ if (!isset($pdo)) {
                                                     </a>
                                                     <?php endif; ?>
                                                 </div>
-                                            </td>
+                                            </td>            
+
                                         </tr>
                                         <?php endforeach; ?>
                                     </tbody>
@@ -289,83 +327,105 @@ if (!isset($pdo)) {
             document.getElementById('mobile-menu').classList.add('hidden');
         });
 
-        // Payment detail modal
-        function openPaymentDetail(payment) {
-            const modal = document.getElementById('paymentDetailModal');
-            const content = document.getElementById('paymentDetailContent');
+// Payment detail modal
+function openPaymentDetail(payment) {
+    const modal = document.getElementById('paymentDetailModal');
+    const content = document.getElementById('paymentDetailContent');
+    
+    // Buat URL gambar yang benar
+    const proofImageUrl = payment.proof_image ? `../uploads/payments/${payment.proof_image}` : '';
+    
+    content.innerHTML = `
+        <div class="space-y-4">
+            <h3 class="text-lg font-semibold text-gray-900">Detail Pembayaran #${payment.id}</h3>
             
-            let proofImageHtml = '';
-            if (payment.proof_image) {
-                proofImageHtml = `
-                    <div class="mb-4">
-                        <label class="block text-gray-700 text-sm font-bold mb-2">Bukti Transfer:</label>
-                        <img src="../uploads/payments/${payment.proof_image}" alt="Bukti Transfer" class="proof-image">
-                    </div>
-                `;
-            }
+            <!-- Bagian Bukti Pembayaran -->
+                ${proofImageUrl ? `
+        <div class="mb-4">
+            <img src="${proofImageUrl}" 
+                alt="Bukti Pembayaran"
+                class="max-w-full h-auto rounded border"
+                onerror="this.onerror=null;this.src='../image/no-image.jpg';this.alt='Gambar tidak tersedia'">
+            <a href="${proofImageUrl}" download class="text-blue-500 mt-2 inline-block">
+                <i class="fas fa-download mr-1"></i> Download Bukti
+            </a>
+        </div>
+        ` : '<p class="text-gray-500 py-4">Tidak ada bukti pembayaran yang diunggah</p>'}
             
-            let processedInfo = '';
-            if (payment.processed_at && payment.processed_by_name) {
-                processedInfo = `
-                    <div class="mb-4">
-                        <label class="block text-gray-700 text-sm font-bold mb-2">Diproses oleh:</label>
-                        <p>${payment.processed_by_name} pada ${new Date(payment.processed_at).toLocaleString()}</p>
-                    </div>
-                `;
-            }
-            
-            content.innerHTML = `
-                <div class="mb-4">
-                    <label class="block text-gray-700 text-sm font-bold mb-2">Anggota:</label>
-                    <p>${payment.username}</p>
+            <!-- Detail Pembayaran -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Anggota</label>
+                    <p class="text-sm text-gray-900 bg-gray-50 p-2 rounded">${payment.username}</p>
                 </div>
                 
-                <div class="mb-4">
-                    <label class="block text-gray-700 text-sm font-bold mb-2">Paket:</label>
-                    <p>${payment.package_name} - Rp ${payment.amount.toLocaleString('id-ID')}</p>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Paket Membership</label>
+                    <p class="text-sm text-gray-900 bg-gray-50 p-2 rounded">${payment.package_name}</p>
                 </div>
                 
-                <div class="mb-4">
-                    <label class="block text-gray-700 text-sm font-bold mb-2">Tanggal Pembayaran:</label>
-                    <p>${new Date(payment.payment_date).toLocaleString()}</p>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Jumlah Pembayaran</label>
+                    <p class="text-sm text-gray-900 bg-gray-50 p-2 rounded">Rp ${payment.amount.toLocaleString('id-ID')}</p>
                 </div>
                 
-                ${proofImageHtml}
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Tanggal Pembayaran</label>
+                    <p class="text-sm text-gray-900 bg-gray-50 p-2 rounded">${new Date(payment.payment_date).toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+                </div>
+            </div>
+            
+            <form method="post" class="space-y-4">
+                <input type="hidden" name="payment_id" value="${payment.id}">
                 
-                <form method="post" class="mt-4">
-                    <input type="hidden" name="payment_id" value="${payment.id}">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Status Pembayaran</label>
+                    <select name="status" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border border-gray-300 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 sm:text-sm rounded-md">
+                        <option value="pending" ${payment.status === 'pending' ? 'selected' : ''}>Pending</option>
+                        <option value="paid" ${payment.status === 'paid' ? 'selected' : ''}>Paid</option>
+                        <option value="rejected" ${payment.status === 'rejected' ? 'selected' : ''}>Rejected</option>
+                    </select>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Catatan Admin</label>
+                    <textarea name="notes" rows="3" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 sm:text-sm">${payment.admin_notes || ''}</textarea>
+                </div>
+                
+                ${payment.processed_at && payment.processed_by_name ? `
+                <div class="mt-4 pt-4 border-t border-gray-200">
+                    <h4 class="text-sm font-medium text-gray-500 mb-2">PROSES VERIFIKASI</h4>
+                    <p class="text-sm">Diproses oleh: <span class="font-medium">${payment.processed_by_name}</span></p>
+                    <p class="text-sm">Pada: <span class="font-medium">${new Date(payment.processed_at).toLocaleString()}</span></p>
+                </div>
+                ` : ''}
+                
+                <div class="flex justify-between pt-4">
+                    <form method="post" onsubmit="return confirm('Apakah Anda yakin ingin menghapus pembayaran ini?');" class="inline">
+                        <input type="hidden" name="payment_id" value="${payment.id}">
+                        <button type="submit" name="delete_payment"
+                                class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+                            <i class="fas fa-trash mr-2"></i> Hapus
+                        </button>
+                    </form>
                     
-                    <div class="mb-4">
-                        <label class="block text-gray-700 text-sm font-bold mb-2">Status:</label>
-                        <select name="status" class="block w-full pl-3 pr-10 py-2 text-base border border-gray-300 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 sm:text-sm rounded-md">
-                            <option value="pending" ${payment.status === 'pending' ? 'selected' : ''}>Pending</option>
-                            <option value="paid" ${payment.status === 'paid' ? 'selected' : ''}>Paid</option>
-                            <option value="rejected" ${payment.status === 'rejected' ? 'selected' : ''}>Rejected</option>
-                        </select>
-                    </div>
-                    
-                    <div class="mb-4">
-                        <label class="block text-gray-700 text-sm font-bold mb-2">Catatan Admin:</label>
-                        <textarea name="notes" rows="3" class="block w-full border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500">${payment.admin_notes || ''}</textarea>
-                    </div>
-                    
-                    ${processedInfo}
-                    
-                    <div class="flex justify-end">
+                    <div class="space-x-2">
                         <button type="button" onclick="document.getElementById('paymentDetailModal').style.display='none'" 
-                                class="bg-gray-300 hover:bg-gray-400 text-gray-800 py-2 px-4 rounded mr-2">
+                                class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
                             Batal
                         </button>
                         <button type="submit" name="update_status"
-                                class="bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded">
-                            Update Status
+                                class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+                            Simpan Perubahan
                         </button>
                     </div>
-                </form>
-            `;
-            
-            modal.style.display = 'block';
-        }
+                </div>
+            </form>
+        </div>
+    `;
+    
+    modal.style.display = 'block';
+}
 
         // Close modal when clicking outside
         window.onclick = function(event) {

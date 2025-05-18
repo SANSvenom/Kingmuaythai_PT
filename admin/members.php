@@ -1,4 +1,65 @@
+<?php
+session_start();
 
+// Pastikan hanya admin yang bisa mengakses
+if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
+    header('Location: ../login.php');
+    exit();
+}
+
+// Koneksi database
+require_once '../config/db.php';
+
+// Proses delete member jika ada request
+if (isset($_GET['delete_id'])) {
+    $member_id = $_GET['delete_id'];
+    
+    try {
+        $pdo->beginTransaction();
+        
+        // Hapus dari user_memberships terlebih dahulu karena ada foreign key constraint
+        $stmt = $pdo->prepare("DELETE FROM user_memberships WHERE user_id = ?");
+        $stmt->execute([$member_id]);
+        
+        // Hapus dari payments
+        $stmt = $pdo->prepare("DELETE FROM payments WHERE user_id = ?");
+        $stmt->execute([$member_id]);
+        
+        // Hapus dari users
+        $stmt = $pdo->prepare("DELETE FROM users WHERE id = ?");
+        $stmt->execute([$member_id]);
+        
+        $pdo->commit();
+        
+        $_SESSION['message'] = "Member berhasil dihapus";
+        header("Location: members.php");
+        exit();
+    } catch (PDOException $e) {
+        $pdo->rollBack();
+        $_SESSION['error'] = "Gagal menghapus member: " . $e->getMessage();
+        header("Location: members.php");
+        exit();
+    }
+}
+
+// Query untuk mengambil data member
+$query = "SELECT 
+            u.id, 
+            u.username, 
+            u.phone,
+            um.status as membership_status,
+            mp.name as membership_name,
+            um.end_date as membership_end
+          FROM users u
+          LEFT JOIN user_memberships um ON u.id = um.user_id AND um.status = 'active'
+          LEFT JOIN membership_packages mp ON um.package_id = mp.id
+          WHERE u.role = 'member'
+          ORDER BY u.username";
+
+$stmt = $pdo->prepare($query);
+$stmt->execute();
+$members = $stmt->fetchAll(PDO::FETCH_ASSOC);
+?>
 
 <!DOCTYPE html>
 <html lang="en">
@@ -9,12 +70,33 @@
     <title>King Muaythai - Members</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <style>
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 100;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.4);
+        }
+        .modal-content {
+            background-color: #fefefe;
+            margin: 15% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 500px;
+            border-radius: 8px;
+        }
+    </style>
 </head>
 
 <body class="bg-gray-100 font-sans">
     <div class="flex h-screen">
         <?php include '../partials/sidebar.php'; ?>
-
 
         <!-- Main Content -->
         <div class="flex-1 flex flex-col overflow-hidden">
@@ -39,180 +121,208 @@
             <main class="flex-1 overflow-y-auto bg-gray-100">
                 <div class="py-6">
                     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                        <!-- Tampilkan pesan error/success -->
+                        <?php if (isset($_SESSION['error'])): ?>
+                            <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">
+                                <span class="block sm:inline"><?= $_SESSION['error'] ?></span>
+                                <span class="absolute top-0 bottom-0 right-0 px-4 py-3" onclick="this.parentElement.remove()">
+                                    <svg class="fill-current h-6 w-6 text-red-500" role="button" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><title>Close</title><path d="M14.348 14.849a1.2 1.2 0 0 1-1.697 0L10 11.819l-2.651 3.029a1.2 1.2 0 1 1-1.697-1.697l2.758-3.15-2.759-3.152a1.2 1.2 0 1 1 1.697-1.697L10 8.183l2.651-3.031a1.2 1.2 0 1 1 1.697 1.697l-2.758 3.152 2.758 3.15a1.2 1.2 0 0 1 0 1.698z"/></svg>
+                                </span>
+                            </div>
+                            <?php unset($_SESSION['error']); ?>
+                        <?php endif; ?>
+
+                        <?php if (isset($_SESSION['message'])): ?>
+                            <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative mb-4" role="alert">
+                                <span class="block sm:inline"><?= $_SESSION['message'] ?></span>
+                                <span class="absolute top-0 bottom-0 right-0 px-4 py-3" onclick="this.parentElement.remove()">
+                                    <svg class="fill-current h-6 w-6 text-green-500" role="button" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><title>Close</title><path d="M14.348 14.849a1.2 1.2 0 0 1-1.697 0L10 11.819l-2.651 3.029a1.2 1.2 0 1 1-1.697-1.697l2.758-3.15-2.759-3.152a1.2 1.2 0 1 1 1.697-1.697L10 8.183l2.651-3.031a1.2 1.2 0 1 1 1.697 1.697l-2.758 3.152 2.758 3.15a1.2 1.2 0 0 1 0 1.698z"/></svg>
+                                </span>
+                            </div>
+                            <?php unset($_SESSION['message']); ?>
+                        <?php endif; ?>
 
                         <!-- Search and Filter Section -->
                         <div class="flex flex-col md:flex-row justify-between items-center mb-6 space-y-4 md:space-y-0">
                             <!-- Search Input -->
-                            <div class="relative w-full md:w-64">
+                            <form method="GET" class="relative w-full md:w-64">
                                 <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                     <i class="fas fa-search text-gray-400"></i>
                                 </div>
-                                <input type="text"
+                                <input type="text" name="search"
                                     class="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:ring-red-500 focus:border-red-500 sm:text-sm"
-                                    placeholder="Search members...">
-                            </div>
+                                    placeholder="Search members..." value="<?= isset($_GET['search']) ? htmlspecialchars($_GET['search']) : '' ?>">
+                            </form>
 
                             <!-- Filters + Button -->
                             <div class="flex space-x-3 items-center">
                                 <!-- Status Filter -->
                                 <div class="relative inline-block text-left">
-                                    <button
+                                    <select name="status" onchange="this.form.submit()"
                                         class="inline-flex justify-between items-center w-40 rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none">
-                                        All Status
-                                        <i class="fas fa-chevron-down ml-2"></i>
-                                    </button>
+                                        <option value="">All Status</option>
+                                        <option value="active" <?= (isset($_GET['status']) && $_GET['status'] == 'active') ? 'selected' : '' ?>>Active</option>
+                                        <option value="expired" <?= (isset($_GET['status']) && $_GET['status'] == 'expired') ? 'selected' : '' ?>>Expired</option>
+                                    </select>
                                 </div>
 
                                 <!-- Membership Filter -->
                                 <div class="relative inline-block text-left">
-                                    <button
+                                    <select name="membership" onchange="this.form.submit()"
                                         class="inline-flex justify-between items-center w-40 rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none">
-                                        All Memberships
-                                        <i class="fas fa-chevron-down ml-2"></i>
-                                    </button>
+                                        <option value="">All Memberships</option>
+                                        <option value="premium" <?= (isset($_GET['membership']) && $_GET['membership'] == 'premium') ? 'selected' : '' ?>>Premium</option>
+                                        <option value="regular" <?= (isset($_GET['membership']) && $_GET['membership'] == 'regular') ? 'selected' : '' ?>>Regular</option>
+                                    </select>
                                 </div>
 
                                 <!-- Add Button -->
-                                <button
+                                <a href="add-member.php"
                                     class="bg-red-600 hover:bg-red-700 text-white rounded-md px-4 py-2 text-sm font-medium flex items-center">
                                     <i class="fas fa-plus mr-2"></i>
                                     Add Member
-                                </button>
+                                </a>
                             </div>
                         </div>
-
 
                         <!-- Members Table -->
                         <div class="bg-white shadow overflow-hidden sm:rounded-lg">
                             <table class="min-w-full divide-y divide-gray-200">
                                 <thead class="bg-gray-50">
                                     <tr>
-                                        <th scope="col"
-                                            class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-36">
-                                            Member
-                                        </th>
-                                        <th scope="col"
-                                            class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Email
-                                        </th>
-                                        <th scope="col"
-                                            class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Phone
-                                        </th>
-                                        <th scope="col"
-                                            class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Membership
-                                        </th>
-                                        <th scope="col"
-                                            class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Join Date
-                                        </th>
-                                        <th scope="col"
-                                            class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Status
-                                        </th>
-                                        <th scope="col"
-                                            class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Actions
-                                        </th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">No</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Member</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phone</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Membership</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody class="bg-white divide-y divide-gray-200">
-                                    <!-- Member Row -->
+                                    <?php foreach ($members as $index => $member): ?>
                                     <tr>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900"><?= $index + 1 ?></td>
                                         <td class="px-6 py-4 whitespace-nowrap">
                                             <div class="flex items-center">
-                                                <div
-                                                    class="w-8 h-8 rounded-full bg-red-500 flex items-center justify-center text-white text-sm mr-3">
-                                                    JD
+                                                <div class="text-sm font-medium text-gray-900">
+                                                    <?= htmlspecialchars($member['username']) ?>
                                                 </div>
-                                                <div class="text-sm font-medium text-gray-900">John Doe</div>
                                             </div>
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                            john.doe@example.com
-                                        </td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                            (555) 123-4567
+                                            <?= htmlspecialchars($member['phone']) ?>
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                            Premium
-                                        </td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                            Jan 15, 2023
+                                            <?= $member['membership_name'] ? htmlspecialchars($member['membership_name']) : '-' ?>
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap">
-                                            <span
-                                                class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-                                                Active
+                                            <?php
+                                            $status_class = 'bg-gray-100 text-gray-800';
+                                            $status_text = 'Inactive';
+                                            
+                                            if ($member['membership_status'] === 'active') {
+                                                if (strtotime($member['membership_end']) > time()) {
+                                                    $status_class = 'bg-green-100 text-green-800';
+                                                    $status_text = 'Active';
+                                                } else {
+                                                    $status_class = 'bg-yellow-100 text-yellow-800';
+                                                    $status_text = 'Expired';
+                                                }
+                                            }
+                                            ?>
+                                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full <?= $status_class ?>">
+                                                <?= $status_text ?>
                                             </span>
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                            <div class="flex space-x-2">
-                                                <button class="text-gray-500 hover:text-gray-700">
+                                            <div class="flex space-x-2 ">
+                                                <!-- View Button -->
+                                                <button onclick="openViewModal(<?= htmlspecialchars(json_encode($member)) ?>)" 
+                                                        class="text-blue-600 hover:text-blue-900">
                                                     <i class="fas fa-eye"></i>
-                                                </button>
-                                                <button class="text-gray-500 hover:text-gray-700">
-                                                    <i class="fas fa-edit"></i>
-                                                </button>
-                                                <button class="text-gray-500 hover:text-gray-700">
+                                                </button>                                                
+                                                <!-- Delete Button -->
+                                                <button onclick="confirmDelete(<?= $member['id'] ?>)" 
+                                                        class="text-red-600 hover:text-red-900">
                                                     <i class="fas fa-trash"></i>
                                                 </button>
                                             </div>
                                         </td>
                                     </tr>
-
-                                    <!-- Jane Smith -->
-                                    <tr>
-                                        <td class="px-6 py-4 whitespace-nowrap">
-                                            <div class="flex items-center">
-                                                <div
-                                                    class="w-8 h-8 rounded-full bg-pink-500 flex items-center justify-center text-white text-sm mr-3">
-                                                    JS
-                                                </div>
-                                                <div class="text-sm font-medium text-gray-900">Jane Smith</div>
-                                            </div>
-                                        </td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                            jane.smith@example.com
-                                        </td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                            (555) 987-6543
-                                        </td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                            Standard
-                                        </td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                            Feb 3, 2023
-                                        </td>
-                                        <td class="px-6 py-4 whitespace-nowrap">
-                                            <span
-                                                class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-                                                Active
-                                            </span>
-                                        </td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                            <div class="flex space-x-2">
-                                                <button class="text-gray-500 hover:text-gray-700">
-                                                    <i class="fas fa-eye"></i>
-                                                </button>
-                                                <button class="text-gray-500 hover:text-gray-700">
-                                                    <i class="fas fa-edit"></i>
-                                                </button>
-                                                <button class="text-gray-500 hover:text-gray-700">
-                                                    <i class="fas fa-trash"></i>
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
+                                    <?php endforeach; ?>
                                 </tbody>
-                            </div>
+                            </table>
                         </div>
                     </div>
-                </main> 
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- View Modal -->
+    <div id="viewModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="document.getElementById('viewModal').style.display='none'">&times;</span>
+            <h3 class="text-lg font-semibold mb-4">Member Details</h3>
+            <div id="viewModalContent">
+                <!-- Content will be filled by JavaScript -->
             </div>
         </div>
-    </body>
+    </div>
+
+    <script>
+        // Function to open view modal
+        function openViewModal(member) {
+            const modal = document.getElementById('viewModal');
+            const content = document.getElementById('viewModalContent');
+            
+            content.innerHTML = `
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Username:</label>
+                        <p class="mt-1 text-sm text-gray-900">${member.username}</p>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Phone:</label>
+                        <p class="mt-1 text-sm text-gray-900">${member.phone || '-'}</p>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Membership:</label>
+                        <p class="mt-1 text-sm text-gray-900">${member.membership_name || 'No active membership'}</p>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Membership End Date:</label>
+                        <p class="mt-1 text-sm text-gray-900">${member.membership_end ? new Date(member.membership_end).toLocaleDateString() : '-'}</p>
+                    </div>
+                    
+                    <div class="flex justify-end mt-4">
+                        <button onclick="document.getElementById('viewModal').style.display='none'" 
+                                class="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400">
+                            Close
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            modal.style.display = 'block';
+        }
+
+        // Function to confirm delete
+        function confirmDelete(memberId) {
+            if (confirm('Are you sure you want to delete this member?')) {
+                window.location.href = `members.php?delete_id=${memberId}`;
+            }
+        }
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            if (event.target == document.getElementById('viewModal')) {
+                document.getElementById('viewModal').style.display = 'none';
+            }
+        }
+    </script>
+</body>
 </html>
-
-

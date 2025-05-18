@@ -60,6 +60,13 @@ $groupedClasses = [];
 foreach ($classes as $class) {
     $groupedClasses[$class['day']][] = $class;
 }
+
+// Ambil data pelatih dari database
+$trainers_query = "SELECT name FROM trainers ORDER BY name";
+$trainers_stmt = $pdo->prepare($trainers_query);
+$trainers_stmt->execute();
+$trainers = $trainers_stmt->fetchAll(PDO::FETCH_COLUMN);
+
 ?>
 
 <!DOCTYPE html>
@@ -201,9 +208,13 @@ foreach ($classes as $class) {
                                             </select>
                                         </div>
                                         <div class="mb-4">
-                                            <label for="coach"
-                                                class="block text-sm font-medium text-gray-700">Pelatih</label>
-                                            <input type="text" id="coach" name="coach" class="form-input">
+                                            <label for="coach" class="block text-sm font-medium text-gray-700">Pelatih</label>
+                                            <select id="coach" name="coach" class="form-input" required>
+                                                <option value="">Pilih Pelatih</option>
+                                                <?php foreach ($trainers as $trainer): ?>
+                                                    <option value="<?= htmlspecialchars($trainer) ?>"><?= htmlspecialchars($trainer) ?></option>
+                                                <?php endforeach; ?>
+                                            </select>
                                         </div>
                                         <div class="mb-4">
                                             <label for="time"
@@ -239,26 +250,26 @@ foreach ($classes as $class) {
             const timeInput = document.getElementById('time');
 
             // Edit Button
-            document.querySelectorAll('.edit-btn').forEach(btn => {
-                btn.addEventListener('click', function () {
-                    const id = this.getAttribute('data-id');
-                    const row = this.closest('tr');
-                    const day = row.cells[0].textContent.trim();
-                    const coach = row.cells[1].textContent.trim();
-                    const time = row.cells[2].textContent.trim();
+document.querySelectorAll('.edit-btn').forEach(btn => {
+    btn.addEventListener('click', function () {
+        const id = this.getAttribute('data-id');
+        const row = this.closest('tr');
+        const day = row.cells[0].textContent.trim();
+        const coach = row.cells[1].textContent.trim();
+        const time = row.cells[2].textContent.trim();
 
-                    // Mengisi data pada modal
-                    document.getElementById('modal-title').textContent = "Edit Kelas";
-                    document.getElementById('class-id').value = id;
-                    document.getElementById('day').value = day;
-                    document.getElementById('coach').value = coach;
-                    document.getElementById('time').value = time;
+        // Mengisi data pada modal
+        document.getElementById('modal-title').textContent = "Edit Kelas";
+        document.getElementById('class-id').value = id;
+        document.getElementById('day').value = day;
+        document.getElementById('coach').value = coach;
+        document.getElementById('time').value = time;
 
-                    // Menampilkan modal
-                    classModal.classList.remove('hidden');
-                    classModal.classList.add('flex');
-                });
-            });
+        // Menampilkan modal
+        classModal.classList.remove('hidden');
+        classModal.classList.add('flex');
+    });
+});
 
 
             // Delete Button

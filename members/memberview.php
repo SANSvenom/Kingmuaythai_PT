@@ -1,7 +1,26 @@
 <?php
 session_start();
 
+// Tampilkan pesan error/success
+if (isset($_SESSION['error'])) {
+    echo '<div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">
+            <span class="block sm:inline">' . $_SESSION['error'] . '</span>
+            <span class="absolute top-0 bottom-0 right-0 px-4 py-3" onclick="this.parentElement.remove()">
+                <svg class="fill-current h-6 w-6 text-red-500" role="button" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><title>Close</title><path d="M14.348 14.849a1.2 1.2 0 0 1-1.697 0L10 11.819l-2.651 3.029a1.2 1.2 0 1 1-1.697-1.697l2.758-3.15-2.759-3.152a1.2 1.2 0 1 1 1.697-1.697L10 8.183l2.651-3.031a1.2 1.2 0 1 1 1.697 1.697l-2.758 3.152 2.758 3.15a1.2 1.2 0 0 1 0 1.698z"/></svg>
+            </span>
+            </div>';
+    unset($_SESSION['error']);
+}
 
+if (isset($_SESSION['message'])) {
+    echo '<div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative mb-4" role="alert">
+            <span class="block sm:inline">' . $_SESSION['message'] . '</span>
+            <span class="absolute top-0 bottom-0 right-0 px-4 py-3" onclick="this.parentElement.remove()">
+                <svg class="fill-current h-6 w-6 text-green-500" role="button" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><title>Close</title><path d="M14.348 14.849a1.2 1.2 0 0 1-1.697 0L10 11.819l-2.651 3.029a1.2 1.2 0 1 1-1.697-1.697l2.758-3.15-2.759-3.152a1.2 1.2 0 1 1 1.697-1.697L10 8.183l2.651-3.031a1.2 1.2 0 1 1 1.697 1.697l-2.758 3.152 2.758 3.15a1.2 1.2 0 0 1 0 1.698z"/></svg>
+            </span>
+            </div>';
+    unset($_SESSION['message']);
+}
 
 // Pastikan hanya member yang bisa mengakses
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'member') {
@@ -56,13 +75,13 @@ foreach ($classes as $class) {
     $groupedClasses[$class['day']][] = $class;
 }
 
-    // Cek status membership - pastikan mengacu ke user yang login
-    $membership_stmt = $pdo->prepare("SELECT um.*, mp.name as package_name 
+// Cek status membership - pastikan mengacu ke user yang login
+$membership_stmt = $pdo->prepare("SELECT um.*, mp.name as package_name 
                                     FROM user_memberships um
                                     JOIN membership_packages mp ON um.package_id = mp.id
                                     WHERE um.user_id = ? AND um.status = 'active' AND um.end_date > NOW()");
-    $membership_stmt->execute([$user_id]);
-    $active_membership = $membership_stmt->fetch();
+$membership_stmt->execute([$user_id]);
+$active_membership = $membership_stmt->fetch();
 
 // Ambil data paket membership
 $packages_stmt = $pdo->query("SELECT * FROM membership_packages");
@@ -83,13 +102,45 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['submit_payment'])) {
 
     // Handle file upload
     if (isset($_FILES['proof_image']) && $_FILES['proof_image']['error'] == UPLOAD_ERR_OK) {
-        $upload_dir = '../uploads/payments/';
-        $file_name = uniqid() . '_' . basename($_FILES['proof_image']['name']);
+        $upload_dir = __DIR__ . '/../uploads/payments/';
+
+        // Buat folder jika belum ada
+        if (!file_exists($upload_dir)) {
+            mkdir($upload_dir, 0755, true);
+        }
+
+        // Validasi file
+        $allowed_types = ['image/jpeg', 'image/png', 'image/jpg'];
+        $max_size = 2 * 1024 * 1024; // 2MB
+
+        if (!in_array($_FILES['proof_image']['type'], $allowed_types)) {
+            $_SESSION['error'] = "Format file tidak didukung. Hanya JPG, JPEG, dan PNG yang diperbolehkan.";
+            header("Location: memberview.php");
+            exit();
+        }
+
+        if ($_FILES['proof_image']['size'] > $max_size) {
+            $_SESSION['error'] = "Ukuran file terlalu besar. Maksimal 2MB.";
+            header("Location: memberview.php");
+            exit();
+        }
+
+        // Generate nama file unik
+        $file_ext = pathinfo($_FILES['proof_image']['name'], PATHINFO_EXTENSION);
+        $file_name = uniqid('payment_') . '.' . $file_ext;
         $target_file = $upload_dir . $file_name;
 
         if (move_uploaded_file($_FILES['proof_image']['tmp_name'], $target_file)) {
             $proof_image = $file_name;
+        } else {
+            $_SESSION['error'] = "Gagal mengunggah bukti pembayaran.";
+            header("Location: memberview.php");
+            exit();
         }
+    } else {
+        $_SESSION['error'] = "Silakan upload bukti pembayaran.";
+        header("Location: memberview.php");
+        exit();
     }
 
     // Dapatkan detail paket
@@ -98,15 +149,25 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['submit_payment'])) {
     $package = $package_stmt->fetch(PDO::FETCH_ASSOC);
 
     if ($package) {
-        // Buat transaksi pembayaran
-        $payment_stmt = $pdo->prepare("INSERT INTO payments 
+        try {
+            $pdo->beginTransaction();
+
+            $payment_stmt = $pdo->prepare("INSERT INTO payments 
                                         (user_id, package_id, amount, status, proof_image) 
                                         VALUES (?, ?, ?, 'pending', ?)");
-        $payment_stmt->execute([$user_id, $package_id, $package['price'], $proof_image]);
+            $payment_stmt->execute([$user_id, $package_id, $package['price'], $proof_image]);
 
-        $_SESSION['message'] = "Pembayaran berhasil dikirim. Tunggu konfirmasi admin.";
-        header("Location: memberview.php");
-        exit();
+            $pdo->commit();
+
+            $_SESSION['message'] = "Pembayaran berhasil dikirim. Tunggu konfirmasi admin.";
+            header("Location: memberview.php");
+            exit();
+        } catch (PDOException $e) {
+            $pdo->rollBack();
+            $_SESSION['error'] = "Terjadi kesalahan: " . $e->getMessage();
+            header("Location: memberview.php");
+            exit();
+        }
     }
 }
 
@@ -137,8 +198,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['submit_payment'])) {
             width: 100%;
             height: 100%;
             overflow: auto;
-            background-color: rgba(0,0,0,0.4);
+            background-color: rgba(0, 0, 0, 0.4);
         }
+
         .modal-content {
             background-color: #fefefe;
             margin: 15% auto;
@@ -148,12 +210,14 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['submit_payment'])) {
             max-width: 500px;
             border-radius: 8px;
         }
+
         .close {
             color: #aaa;
             float: right;
             font-size: 28px;
             font-weight: bold;
         }
+
         .close:hover {
             color: black;
             cursor: pointer;
@@ -206,28 +270,28 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['submit_payment'])) {
 
 
                 <div class="text-center">
-                <?php if ($active_membership): ?>
-                    <div class="bg-green-50 border border-green-200 rounded-lg p-4">
-                        <div class="flex items-center">
-                            
-                            <div>
-                                <p class="text-lg font-bold text-green-600">Aktif</p>
-                                <p class="text-xs text-gray-600">Status Membership</p>
-                            </div>
+                    <?php if ($active_membership): ?>
+                        <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+                            <div class="flex items-center">
 
+                                <div>
+                                    <p class="text-lg font-bold text-green-600">Aktif</p>
+                                    <p class="text-xs text-gray-600">Status Membership</p>
+                                </div>
+
+                            </div>
                         </div>
-                    </div>
                     <?php else: ?>
 
-                    <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                        <div class="flex items-center">
-                        
-                            <div>
-                                <h4 class="font-medium text-yellow-800">Tidak Aktif</h4>
-                                <p class="text-xs text-gray-600">Status Membership</p>
+                        <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                            <div class="flex items-center">
+
+                                <div>
+                                    <h4 class="font-medium text-yellow-800">Tidak Aktif</h4>
+                                    <p class="text-xs text-gray-600">Status Membership</p>
+                                </div>
                             </div>
                         </div>
-                    </div>
                     <?php endif; ?>
 
                 </div>
@@ -265,180 +329,191 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['submit_payment'])) {
         </section>
 
         <!-- Payment Section - Diubah -->
-    <section id="payment" class="bg-white p-4 shadow-sm mb-4">
-        <h3 class="text-md font-semibold mb-3">Informasi Pembayaran</h3>
-        
-        <?php if ($active_membership): ?>
-        <div class="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
-            <div class="flex items-center">
-                <div class="h-10 w-10 rounded-full bg-green-100 flex items-center justify-center mr-3">
-                    <i class="fas fa-check text-green-600"></i>
-                </div>
-                <div>
-                    <h4 class="font-medium text-green-800">Membership Aktif</h4>
-                    <p class="text-sm text-green-600">Paket: <?= htmlspecialchars($active_membership['package_name']) ?></p>
-                    <p class="text-sm text-green-600">Berlaku hingga: <?= date('d M Y', strtotime($active_membership['end_date'])) ?></p>
-                </div>
-            </div>
-        </div>
-        <?php else: ?>
-        <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
-            <div class="flex items-center">
-                <div class="h-10 w-10 rounded-full bg-yellow-100 flex items-center justify-center mr-3">
-                    <i class="fas fa-exclamation text-yellow-600"></i>
-                </div>
-                <div>
-                    <h4 class="font-medium text-yellow-800">Membership Tidak Aktif</h4>
-                    <p class="text-sm text-yellow-600">Silakan pilih paket membership untuk melanjutkan</p>
-                </div>
-            </div>
-        </div>
-        <?php endif; ?>
+        <section id="payment" class="bg-white p-4 shadow-sm mb-4">
+            <h3 class="text-md font-semibold mb-3">Informasi Pembayaran</h3>
 
-        <div class="border rounded-lg overflow-hidden">
-            <?php foreach ($packages as $package): ?>
-            <div class="p-4 bg-gray-50 border-b">
-                <div class="flex justify-between mb-3">
-                    <div>
-                        <div class="text-sm text-gray-500">Paket</div>
-                        <div class="font-medium"><?= htmlspecialchars($package['name']) ?></div>
-                        <div class="text-xs text-gray-500"><?= htmlspecialchars($package['description']) ?></div>
-                    </div>
-                    <div>
-                        <div class="text-sm text-gray-500">Harga</div>
-                        <div class="font-medium">Rp <?= number_format($package['price'], 0, ',', '.') ?></div>
+            <?php if ($active_membership): ?>
+                <div class="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
+                    <div class="flex items-center">
+                        <div class="h-10 w-10 rounded-full bg-green-100 flex items-center justify-center mr-3">
+                            <i class="fas fa-check text-green-600"></i>
+                        </div>
+                        <div>
+                            <h4 class="font-medium text-green-800">Membership Aktif</h4>
+                            <p class="text-sm text-green-600">Paket:
+                                <?= htmlspecialchars($active_membership['package_name']) ?></p>
+                            <p class="text-sm text-green-600">Berlaku hingga:
+                                <?= date('d M Y', strtotime($active_membership['end_date'])) ?></p>
+                        </div>
                     </div>
                 </div>
-                <div class="flex justify-end">
-                    <button onclick="openPaymentModal(<?= $package['id'] ?>, '<?= htmlspecialchars($package['name']) ?>', <?= $package['price'] ?>)"
-                        class="bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded-md text-sm">
-                        Beli Sekarang
-                    </button>
-                </div>
-            </div>
-            <?php endforeach; ?>
-        </div>
-
-        <!-- Riwayat Pembayaran -->
-        <?php if (!empty($payments)): ?>
-        <div class="mt-6">
-            <h4 class="text-md font-semibold mb-2">Riwayat Pembayaran</h4>
-            <div class="overflow-x-auto">
-                <table class="min-w-full bg-white">
-                    <thead>
-                        <tr class="bg-gray-50 text-xs">
-                            <th class="px-3 py-2 text-left">Tanggal</th>
-                            <th class="px-3 py-2 text-left">Paket</th>
-                            <th class="px-3 py-2 text-left">Jumlah</th>
-                            <th class="px-3 py-2 text-left">Status</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php foreach ($payments as $payment): ?>
-                        <tr class="border-b">
-                            <td class="px-3 py-3 text-sm"><?= date('d M Y', strtotime($payment['payment_date'])) ?></td>
-                            <td class="px-3 py-3 text-sm"><?= htmlspecialchars($payment['package_name']) ?></td>
-                            <td class="px-3 py-3 text-sm">Rp <?= number_format($payment['amount'], 0, ',', '.') ?></td>
-                            <td class="px-3 py-3">
-                                <?php 
-                                $status_class = '';
-                                switch ($payment['status']) {
-                                    case 'paid': $status_class = 'bg-green-100 text-green-800'; break;
-                                    case 'pending': $status_class = 'bg-yellow-100 text-yellow-800'; break;
-                                    case 'rejected': $status_class = 'bg-red-100 text-red-800'; break;
-                                    default: $status_class = 'bg-gray-100 text-gray-800';
-                                }
-                                ?>
-                                <span class="px-2 py-1 text-xs rounded-full <?= $status_class ?>">
-                                    <?= ucfirst($payment['status']) ?>
-                                </span>
-                            </td>
-                        </tr>
-                        <?php endforeach; ?>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-        <?php endif; ?>
-    </section>
-
-    <!-- Payment Modal -->
-    <div id="paymentModal" class="modal">
-        <div class="modal-content">
-            <span class="close">&times;</span>
-            <h3 class="text-lg font-semibold mb-4" id="modalTitle">Pembayaran Paket</h3>
-            
-            <form id="paymentForm" method="post" enctype="multipart/form-data">
-                <input type="hidden" name="package_id" id="package_id">
-                
-                <div class="mb-4">
-                    <label class="block text-gray-700 text-sm font-bold mb-2">Paket:</label>
-                    <p class="text-gray-900" id="packageName"></p>
-                </div>
-                
-                <div class="mb-4">
-                    <label class="block text-gray-700 text-sm font-bold mb-2">Harga:</label>
-                    <p class="text-gray-900" id="packagePrice"></p>
-                </div>
-                
-                <div class="mb-4">
-                    <label class="block text-gray-700 text-sm font-bold mb-2">Rekening Pembayaran:</label>
-                    <div class="bg-gray-100 p-3 rounded-lg">
-                        <p class="font-medium">Bank BCA</p>
-                        <p class="text-lg font-bold">1234567890</p>
-                        <p class="text-sm">a/n King Muaythai</p>
+            <?php else: ?>
+                <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+                    <div class="flex items-center">
+                        <div class="h-10 w-10 rounded-full bg-yellow-100 flex items-center justify-center mr-3">
+                            <i class="fas fa-exclamation text-yellow-600"></i>
+                        </div>
+                        <div>
+                            <h4 class="font-medium text-yellow-800">Membership Tidak Aktif</h4>
+                            <p class="text-sm text-yellow-600">Silakan pilih paket membership untuk melanjutkan</p>
+                        </div>
                     </div>
                 </div>
-                
+            <?php endif; ?>
+
+            <div class="border rounded-lg overflow-hidden">
+                <?php foreach ($packages as $package): ?>
+                    <div class="p-4 bg-gray-50 border-b">
+                        <div class="flex justify-between mb-3">
+                            <div>
+                                <div class="text-sm text-gray-500">Paket</div>
+                                <div class="font-medium"><?= htmlspecialchars($package['name']) ?></div>
+                                <div class="text-xs text-gray-500"><?= htmlspecialchars($package['description']) ?></div>
+                            </div>
+                            <div>
+                                <div class="text-sm text-gray-500">Harga</div>
+                                <div class="font-medium">Rp <?= number_format($package['price'], 0, ',', '.') ?></div>
+                            </div>
+                        </div>
+                        <div class="flex justify-end">
+                            <button
+                                onclick="openPaymentModal(<?= $package['id'] ?>, '<?= htmlspecialchars($package['name']) ?>', <?= $package['price'] ?>)"
+                                class="bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded-md text-sm">
+                                Beli Sekarang
+                            </button>
+                        </div>
+                    </div>
+                <?php endforeach; ?>
+            </div>
+
+            <!-- Riwayat Pembayaran -->
+            <?php if (!empty($payments)): ?>
+                <div class="mt-6">
+                    <h4 class="text-md font-semibold mb-2">Riwayat Pembayaran</h4>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full bg-white">
+                            <thead>
+                                <tr class="bg-gray-50 text-xs">
+                                    <th class="px-3 py-2 text-left">Tanggal</th>
+                                    <th class="px-3 py-2 text-left">Paket</th>
+                                    <th class="px-3 py-2 text-left">Jumlah</th>
+                                    <th class="px-3 py-2 text-left">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php foreach ($payments as $payment): ?>
+                                    <tr class="border-b">
+                                        <td class="px-3 py-3 text-sm"><?= date('d M Y', strtotime($payment['payment_date'])) ?>
+                                        </td>
+                                        <td class="px-3 py-3 text-sm"><?= htmlspecialchars($payment['package_name']) ?></td>
+                                        <td class="px-3 py-3 text-sm">Rp <?= number_format($payment['amount'], 0, ',', '.') ?>
+                                        </td>
+                                        <td class="px-3 py-3">
+                                            <?php
+                                            $status_class = '';
+                                            switch ($payment['status']) {
+                                                case 'paid':
+                                                    $status_class = 'bg-green-100 text-green-800';
+                                                    break;
+                                                case 'pending':
+                                                    $status_class = 'bg-yellow-100 text-yellow-800';
+                                                    break;
+                                                case 'rejected':
+                                                    $status_class = 'bg-red-100 text-red-800';
+                                                    break;
+                                                default:
+                                                    $status_class = 'bg-gray-100 text-gray-800';
+                                            }
+                                            ?>
+                                            <span class="px-2 py-1 text-xs rounded-full <?= $status_class ?>">
+                                                <?= ucfirst($payment['status']) ?>
+                                            </span>
+                                        </td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            <?php endif; ?>
+        </section>
+
+        <!-- Payment Modal -->
+        <div id="paymentModal" class="modal">
+            <div class="modal-content">
+                <span class="close">&times;</span>
+                <h3 class="text-lg font-semibold mb-4" id="modalTitle">Pembayaran Paket</h3>
+
+                <form id="paymentForm" method="post" enctype="multipart/form-data">
+                    <input type="hidden" name="package_id" id="package_id">
+
+                    <div class="mb-4">
+                        <label class="block text-gray-700 text-sm font-bold mb-2">Paket:</label>
+                        <p class="text-gray-900" id="packageName"></p>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="block text-gray-700 text-sm font-bold mb-2">Harga:</label>
+                        <p class="text-gray-900" id="packagePrice"></p>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="block text-gray-700 text-sm font-bold mb-2">Rekening Pembayaran:</label>
+                        <div class="bg-gray-100 p-3 rounded-lg">
+                            <p class="font-medium">Bank BCA</p>
+                            <p class="text-lg font-bold">1234567890</p>
+                            <p class="text-sm">a/n King Muaythai</p>
+                        </div>
+                    </div>
+
                     <div class="mb-4">
                         <label class="block text-gray-700 text-sm font-bold mb-2" for="proof_image">
                             Upload Bukti Transfer:
                         </label>
-                        <input type="file" name="proof_image" id="proof_image" 
-                            class="block w-full text-sm text-gray-500
-                                    file:mr-4 file:py-2 file:px-4
-                                    file:rounded-md file:border-0
-                                    file:text-sm file:font-semibold
-                                    file:bg-red-50 file:text-red-700
-                                    hover:file:bg-red-100" required>
+                        <input type="file" name="proof_image" id="proof_image" class="block w-full text-sm text-gray-500
+                                        file:mr-4 file:py-2 file:px-4
+                                        file:rounded-md file:border-0
+                                        file:text-sm file:font-semibold
+                                        file:bg-red-50 file:text-red-700
+                                        hover:file:bg-red-100" required>
                         <p class="text-xs text-gray-500 mt-1">Format: JPG, PNG (max 2MB)</p>
                     </div>
-                
-                <div class="flex justify-end">
-                    <button type="button" onclick="document.getElementById('paymentModal').style.display='none'" 
-                            class="bg-gray-300 hover:bg-gray-400 text-gray-800 py-2 px-4 rounded mr-2">
-                        Batal
-                    </button>
-                    <button type="submit" name="submit_payment"
-                            class="bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded">
-                        Kirim Pembayaran
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
 
-    <script>
-        // Modal functions
-        function openPaymentModal(packageId, packageName, packagePrice) {
-            document.getElementById('package_id').value = packageId;
-            document.getElementById('packageName').textContent = packageName;
-            document.getElementById('packagePrice').textContent = 'Rp ' + packagePrice.toLocaleString('id-ID');
-            document.getElementById('paymentModal').style.display = 'block';
-        }
-        
-        // Close modal when clicking X
-        document.querySelector('.close').onclick = function() {
-            document.getElementById('paymentModal').style.display = 'none';
-        }
-        
-        // Close modal when clicking outside
-        window.onclick = function(event) {
-            if (event.target == document.getElementById('paymentModal')) {
+                    <div class="flex justify-end">
+                        <button type="button" onclick="document.getElementById('paymentModal').style.display='none'"
+                            class="bg-gray-300 hover:bg-gray-400 text-gray-800 py-2 px-4 rounded mr-2">
+                            Batal
+                        </button>
+                        <button type="submit" name="submit_payment"
+                            class="bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded">
+                            Kirim Pembayaran
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <script>
+            // Modal functions
+            function openPaymentModal(packageId, packageName, packagePrice) {
+                document.getElementById('package_id').value = packageId;
+                document.getElementById('packageName').textContent = packageName;
+                document.getElementById('packagePrice').textContent = 'Rp ' + packagePrice.toLocaleString('id-ID');
+                document.getElementById('paymentModal').style.display = 'block';
+            }
+
+            // Close modal when clicking X
+            document.querySelector('.close').onclick = function () {
                 document.getElementById('paymentModal').style.display = 'none';
             }
-        }
-    </script>
+
+            // Close modal when clicking outside
+            window.onclick = function (event) {
+                if (event.target == document.getElementById('paymentModal')) {
+                    document.getElementById('paymentModal').style.display = 'none';
+                }
+            }
+        </script>
 
 
 
