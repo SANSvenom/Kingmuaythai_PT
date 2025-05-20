@@ -339,8 +339,22 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['submit_payment'])) {
                 </div>
             </div>
             <div class="flex justify-between bg-gray-50 rounded-lg p-3">
-                <div class="text-center">
-                    <p class="text-lg font-bold text-red-600"><?= $attend_this_month ?></p>
+                <div class="text-center border-l border-r border-gray-300 px-4">
+                    <p class="text-lg font-bold text-red-600"><?= $attend_this_month ?>
+                        <?php if ($active_membership): ?>
+                            <?php
+                            $max_attendance = 0;
+                            if (strpos($active_membership['package_name'], '4X') !== false) {
+                                $max_attendance = 4;
+                            } elseif (strpos($active_membership['package_name'], '8X') !== false) {
+                                $max_attendance = 8;
+                            } elseif (strpos($active_membership['package_name'], 'Unlimited') !== false) {
+                                $max_attendance = '∞';
+                            }
+                            ?>
+                            <span class="text-xs font-normal">/ <?= $max_attendance ?></span>
+                        <?php endif; ?>
+                    </p>
                     <p class="text-xs text-gray-600">Latihan Bulan Ini</p>
                 </div>
 
@@ -627,155 +641,175 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['submit_payment'])) {
 
 
 
-        <section id="schedule" class="bg-white p-4 shadow-sm mb-4">
-            <div class="flex justify-between items-center mb-3">
-                <h3 class="text-md font-semibold">Jadwal</h3>
-            </div>
+<section id="schedule" class="bg-white p-4 shadow-sm mb-4">
+    <div class="flex justify-between items-center mb-3">
+        <h3 class="text-md font-semibold">Jadwal</h3>
+    </div>
 
-            <div class="grid grid-cols-2 gap-4">
-                <!-- Column 1: Senin, Selasa, Rabu -->
-                <div>
-                    <?php
-                    $days = ['SENIN', 'SELASA', 'RABU']; // Hari untuk kolom pertama
-                    foreach ($days as $day): ?>
-                        <div class="font-semibold text-lg"><?= $day ?></div>
-                        <?php
-                        if (isset($groupedClasses[$day])):
-                            foreach ($groupedClasses[$day] as $class): ?>
-                                <!-- Cek apakah sudah absen -->
-                                <?php if ($has_attended_today): ?>
-                                    <!-- Jika sudah absen, tombol disabled -->
-                                    <div class="flex items-center p-3 border rounded-lg bg-gray-50 mb-3">
-                                        <div class="h-10 w-10 rounded-full bg-red-100 flex items-center justify-center mr-3">
-                                            <i class="fas fa-dumbbell text-red-600"></i>
-                                        </div>
-                                        <div class="flex-1">
-                                            <div class="flex justify-between">
-                                                <h4 class="font-medium"><?= htmlspecialchars($class['coach']) ?></h4>
-                                                <span
-                                                    class="text-xs bg-gray-200 px-2 py-1 rounded-full"><?= htmlspecialchars($class['time']) ?></span>
-                                            </div>
-                                            <div class="flex text-sm text-gray-500">
-                                                <span class="mr-3"><i
-                                                        class="far fa-clock mr-1"></i><?= htmlspecialchars($class['time']) ?></span>
-                                                <span><i class="far fa-user mr-1"></i><?= htmlspecialchars($class['coach']) ?></span>
-                                            </div>
-                                        </div>
-                                        <!-- Tombol disabled jika sudah absen -->
-                                        <button disabled class="ml-2 bg-gray-400 text-white p-2 rounded-md cursor-not-allowed"
-                                            title="Anda sudah absen hari ini">
-                                            <i class="fas fa-check"></i>
-                                        </button>
-                                    </div>
-                                <?php else: ?>
-                                    <!-- Tombol aktif jika belum absen -->
-                                    <div class="flex items-center p-3 border rounded-lg bg-gray-50 mb-3">
-                                        <div class="h-10 w-10 rounded-full bg-red-100 flex items-center justify-center mr-3">
-                                            <i class="fas fa-dumbbell text-red-600"></i>
-                                        </div>
-                                        <div class="flex-1">
-                                            <div class="flex justify-between">
-                                                <h4 class="font-medium"><?= htmlspecialchars($class['coach']) ?></h4>
-                                                <span
-                                                    class="text-xs bg-gray-200 px-2 py-1 rounded-full"><?= htmlspecialchars($class['time']) ?></span>
-                                            </div>
-                                            <div class="flex text-sm text-gray-500">
-                                                <span class="mr-3"><i
-                                                        class="far fa-clock mr-1"></i><?= htmlspecialchars($class['time']) ?></span>
-                                                <span><i class="far fa-user mr-1"></i><?= htmlspecialchars($class['coach']) ?></span>
-                                            </div>
-                                        </div>
-                                        <!-- Tombol absensi aktif -->
-                                        <button onclick="openAttendanceModal(
+    <div class="grid grid-cols-2 gap-4">
+        <!-- Column 1: Senin, Selasa, Rabu -->
+        <div>
+            <?php
+            $days = ['SENIN', 'SELASA', 'RABU']; // Hari untuk kolom pertama
+            foreach ($days as $day): ?>
+                <div class="font-semibold text-lg"><?= $day ?></div>
+                <?php
+                if (isset($groupedClasses[$day])):
+                    foreach ($groupedClasses[$day] as $class): ?>
+                        <div class="flex items-center p-3 border rounded-lg bg-gray-50 mb-3">
+                            <div class="h-10 w-10 rounded-full bg-red-100 flex items-center justify-center mr-3">
+                                <i class="fas fa-dumbbell text-red-600"></i>
+                            </div>
+                            <div class="flex-1">
+                                <div class="flex justify-between">
+                                    <h4 class="font-medium"><?= htmlspecialchars($class['coach']) ?></h4>
+                                    <span class="text-xs bg-gray-200 px-2 py-1 rounded-full"><?= htmlspecialchars($class['time']) ?></span>
+                                </div>
+                                <div class="flex text-sm text-gray-500">
+                                    <span class="mr-3"><i class="far fa-clock mr-1"></i><?= htmlspecialchars($class['time']) ?></span>
+                                    <span><i class="far fa-user mr-1"></i><?= htmlspecialchars($class['coach']) ?></span>
+                                </div>
+                            </div>
+                            
+                            <?php 
+                            // Check if user can attend more classes this month
+                            $can_attend_more = true;
+                            if ($active_membership) {
+                                $max_attendance = 0;
+                                if (strpos($active_membership['package_name'], '4X') !== false) {
+                                    $max_attendance = 4;
+                                } elseif (strpos($active_membership['package_name'], '8X') !== false) {
+                                    $max_attendance = 8;
+                                } elseif (strpos($active_membership['package_name'], 'Unlimited') !== false) {
+                                    $max_attendance = PHP_INT_MAX;
+                                }
+                                
+                                if ($attend_this_month >= $max_attendance) {
+                                    $can_attend_more = false;
+                                }
+                            }
+                            ?>
+
+                            <?php if ($has_attended_today): ?>
+                                <!-- Button disabled if already attended today -->
+                                <button disabled class="ml-2 bg-gray-400 text-white p-2 rounded-md cursor-not-allowed"
+                                    title="Anda sudah absen hari ini">
+                                    <i class="fas fa-check"></i>
+                                </button>
+                            <?php elseif (!$active_membership): ?>
+                                <!-- Button disabled if no active membership -->
+                                <button disabled class="ml-2 bg-gray-400 text-white p-2 rounded-md cursor-not-allowed"
+                                    title="Anda tidak memiliki membership aktif">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            <?php elseif (!$can_attend_more): ?>
+                                <!-- Button disabled if reached monthly limit -->
+                                <button disabled class="ml-2 bg-gray-400 text-white p-2 rounded-md cursor-not-allowed"
+                                    title="Anda sudah mencapai batas kehadiran bulan ini">
+                                    <i class="fas fa-ban"></i>
+                                </button>
+                            <?php else: ?>
+                                <!-- Active attendance button -->
+                                <button onclick="openAttendanceModal(
                                     '<?= $class['id'] ?>', 
                                     '<?= htmlspecialchars($class['coach']) ?>', 
                                     '<?= htmlspecialchars($class['day']) ?>', 
                                     '<?= htmlspecialchars($class['time']) ?>', 
                                     '<?= htmlspecialchars($class['coach']) ?>'
-                                )" class="ml-2 bg-gray-500 text-white p-2 rounded-md hover:bg-red-600">
-                                            <i class="fas fa-check"></i>
-                                        </button>
-                                    </div>
-                                <?php endif; ?>
-                            <?php endforeach;
-                        else: ?>
-                            <p class="text-gray-500">Tidak ada kelas yang dijadwalkan untuk <?= $day ?>.</p>
-                        <?php endif; ?>
-                    <?php endforeach; ?>
-                </div>
+                                )" class="ml-2 bg-red-500 text-white p-2 rounded-md hover:bg-red-600">
+                                    <i class="fas fa-check"></i>
+                                </button>
+                            <?php endif; ?>
+                        </div>
+                    <?php endforeach;
+                else: ?>
+                    <p class="text-gray-500">Tidak ada kelas yang dijadwalkan untuk <?= $day ?>.</p>
+                <?php endif; ?>
+            <?php endforeach; ?>
+        </div>
 
-                <!-- Column 2: Kamis, Jumat, Sabtu -->
-                <div>
-                    <?php
-                    $days = ['KAMIS', 'JUMAT', 'SABTU']; // Hari untuk kolom kedua
-                    foreach ($days as $day): ?>
-                        <div class="font-semibold text-lg"><?= $day ?></div>
-                        <?php
-                        if (isset($groupedClasses[$day])):
-                            foreach ($groupedClasses[$day] as $class): ?>
-                                <!-- Cek apakah sudah absen -->
-                                <?php if ($has_attended_today): ?>
-                                    <!-- Jika sudah absen, tombol disabled -->
-                                    <div class="flex items-center p-3 border rounded-lg bg-gray-50 mb-3">
-                                        <div class="h-10 w-10 rounded-full bg-red-100 flex items-center justify-center mr-3">
-                                            <i class="fas fa-dumbbell text-red-600"></i>
-                                        </div>
-                                        <div class="flex-1">
-                                            <div class="flex justify-between">
-                                                <h4 class="font-medium"><?= htmlspecialchars($class['coach']) ?></h4>
-                                                <span
-                                                    class="text-xs bg-gray-200 px-2 py-1 rounded-full"><?= htmlspecialchars($class['time']) ?></span>
-                                            </div>
-                                            <div class="flex text-sm text-gray-500">
-                                                <span class="mr-3"><i
-                                                        class="far fa-clock mr-1"></i><?= htmlspecialchars($class['time']) ?></span>
-                                                <span><i class="far fa-user mr-1"></i><?= htmlspecialchars($class['coach']) ?></span>
-                                            </div>
-                                        </div>
-                                        <!-- Tombol disabled jika sudah absen -->
-                                        <button disabled class="ml-2 bg-gray-400 text-white p-2 rounded-md cursor-not-allowed"
-                                            title="Anda sudah absen hari ini">
-                                            <i class="fas fa-check"></i>
-                                        </button>
-                                    </div>
-                                <?php else: ?>
-                                    <!-- Tombol aktif jika belum absen -->
-                                    <div class="flex items-center p-3 border rounded-lg bg-gray-50 mb-3">
-                                        <div class="h-10 w-10 rounded-full bg-red-100 flex items-center justify-center mr-3">
-                                            <i class="fas fa-dumbbell text-red-600"></i>
-                                        </div>
-                                        <div class="flex-1">
-                                            <div class="flex justify-between">
-                                                <h4 class="font-medium"><?= htmlspecialchars($class['coach']) ?></h4>
-                                                <span
-                                                    class="text-xs bg-gray-200 px-2 py-1 rounded-full"><?= htmlspecialchars($class['time']) ?></span>
-                                            </div>
-                                            <div class="flex text-sm text-gray-500">
-                                                <span class="mr-3"><i
-                                                        class="far fa-clock mr-1"></i><?= htmlspecialchars($class['time']) ?></span>
-                                                <span><i class="far fa-user mr-1"></i><?= htmlspecialchars($class['coach']) ?></span>
-                                            </div>
-                                        </div>
-                                        <!-- Tombol absensi aktif -->
-                                        <button onclick="openAttendanceModal(
+        <!-- Column 2: Kamis, Jumat, Sabtu -->
+        <div>
+            <?php
+            $days = ['KAMIS', 'JUMAT', 'SABTU']; // Hari untuk kolom kedua
+            foreach ($days as $day): ?>
+                <div class="font-semibold text-lg"><?= $day ?></div>
+                <?php
+                if (isset($groupedClasses[$day])):
+                    foreach ($groupedClasses[$day] as $class): ?>
+                        <div class="flex items-center p-3 border rounded-lg bg-gray-50 mb-3">
+                            <div class="h-10 w-10 rounded-full bg-red-100 flex items-center justify-center mr-3">
+                                <i class="fas fa-dumbbell text-red-600"></i>
+                            </div>
+                            <div class="flex-1">
+                                <div class="flex justify-between">
+                                    <h4 class="font-medium"><?= htmlspecialchars($class['coach']) ?></h4>
+                                    <span class="text-xs bg-gray-200 px-2 py-1 rounded-full"><?= htmlspecialchars($class['time']) ?></span>
+                                </div>
+                                <div class="flex text-sm text-gray-500">
+                                    <span class="mr-3"><i class="far fa-clock mr-1"></i><?= htmlspecialchars($class['time']) ?></span>
+                                    <span><i class="far fa-user mr-1"></i><?= htmlspecialchars($class['coach']) ?></span>
+                                </div>
+                            </div>
+                            
+                            <?php 
+                            // Check if user can attend more classes this month
+                            $can_attend_more = true;
+                            if ($active_membership) {
+                                $max_attendance = 0;
+                                if (strpos($active_membership['package_name'], '4X') !== false) {
+                                    $max_attendance = 4;
+                                } elseif (strpos($active_membership['package_name'], '8X') !== false) {
+                                    $max_attendance = 8;
+                                } elseif (strpos($active_membership['package_name'], 'Unlimited') !== false) {
+                                    $max_attendance = PHP_INT_MAX;
+                                }
+                                
+                                if ($attend_this_month >= $max_attendance) {
+                                    $can_attend_more = false;
+                                }
+                            }
+                            ?>
+
+                            <?php if ($has_attended_today): ?>
+                                <!-- Button disabled if already attended today -->
+                                <button disabled class="ml-2 bg-gray-400 text-white p-2 rounded-md cursor-not-allowed"
+                                    title="Anda sudah absen hari ini">
+                                    <i class="fas fa-check"></i>
+                                </button>
+                            <?php elseif (!$active_membership): ?>
+                                <!-- Button disabled if no active membership -->
+                                <button disabled class="ml-2 bg-gray-400 text-white p-2 rounded-md cursor-not-allowed"
+                                    title="Anda tidak memiliki membership aktif">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            <?php elseif (!$can_attend_more): ?>
+                                <!-- Button disabled if reached monthly limit -->
+                                <button disabled class="ml-2 bg-gray-400 text-white p-2 rounded-md cursor-not-allowed"
+                                    title="Anda sudah mencapai batas kehadiran bulan ini">
+                                    <i class="fas fa-ban"></i>
+                                </button>
+                            <?php else: ?>
+                                <!-- Active attendance button -->
+                                <button onclick="openAttendanceModal(
                                     '<?= $class['id'] ?>', 
                                     '<?= htmlspecialchars($class['coach']) ?>', 
                                     '<?= htmlspecialchars($class['day']) ?>', 
                                     '<?= htmlspecialchars($class['time']) ?>', 
                                     '<?= htmlspecialchars($class['coach']) ?>'
-                                )" class="ml-2 bg-gray-500 text-white p-2 rounded-md hover:bg-red-600">
-                                            <i class="fas fa-check"></i>
-                                        </button>
-                                    </div>
-                                <?php endif; ?>
-                            <?php endforeach;
-                        else: ?>
-                            <p class="text-gray-500">Tidak ada kelas yang dijadwalkan untuk <?= $day ?>.</p>
-                        <?php endif; ?>
-                    <?php endforeach; ?>
-                </div>
-            </div>
-        </section>
+                                )" class="ml-2 bg-red-500 text-white p-2 rounded-md hover:bg-red-600">
+                                    <i class="fas fa-check"></i>
+                                </button>
+                            <?php endif; ?>
+                        </div>
+                    <?php endforeach;
+                else: ?>
+                    <p class="text-gray-500">Tidak ada kelas yang dijadwalkan untuk <?= $day ?>.</p>
+                <?php endif; ?>
+            <?php endforeach; ?>
+        </div>
+    </div>
+</section>
 
 
 
