@@ -1,5 +1,5 @@
 <?php
-session_start();
+require_once '../config/auth_check.php';
 
 // Pastikan hanya admin yang bisa mengakses
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
@@ -171,17 +171,12 @@ $members = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                     <select name="membership" onchange="this.form.submit()"
                                         class="inline-flex justify-between items-center w-40 rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none">
                                         <option value="">All Memberships</option>
-                                        <option value="premium" <?= (isset($_GET['membership']) && $_GET['membership'] == 'premium') ? 'selected' : '' ?>>Premium</option>
+                                        <option value="premium" <?= (isset($_GET['membership']) && $_GET['membership'] == 'Kelas 4X') ? 'selected' : '' ?>>Kelas 4X</option>
                                         <option value="regular" <?= (isset($_GET['membership']) && $_GET['membership'] == 'regular') ? 'selected' : '' ?>>Regular</option>
                                     </select>
                                 </div>
 
-                                <!-- Add Button -->
-                                <a href="add-member.php"
-                                    class="bg-red-600 hover:bg-red-700 text-white rounded-md px-4 py-2 text-sm font-medium flex items-center">
-                                    <i class="fas fa-plus mr-2"></i>
-                                    Add Member
-                                </a>
+
                             </div>
                         </div>
 

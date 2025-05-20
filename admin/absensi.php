@@ -1,5 +1,5 @@
 <?php
-session_start();
+require_once '../config/auth_check.php';
 
 // Pastikan hanya admin yang bisa mengakses
 if (empty($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {

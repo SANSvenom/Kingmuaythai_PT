@@ -1,10 +1,10 @@
 <?php
-
+require_once '../config/auth_check.php';
 // Enable full error reporting
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
-session_start();
+
 
 // Verify admin access
 if (!isset($_SESSION["username"]) || $_SESSION["role"] != "admin") {

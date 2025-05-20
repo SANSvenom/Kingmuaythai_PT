@@ -1,4 +1,5 @@
 <?php
+require_once '../config/auth_check.php';
 require __DIR__ . '/config/db.php';
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {

@@ -1,6 +1,6 @@
 <?php
 
-session_start(); 
+require_once '../config/auth_check.php';
 // Jika belum ada session user, redirect ke login
 if (!isset($_SESSION['user_id'])) {
     header('Location: /login.php');
