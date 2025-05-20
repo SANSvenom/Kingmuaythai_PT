@@ -1,6 +1,16 @@
 <?php
 session_start();
 
+// Koneksi database
+require_once '../config/db.php';
+
+// Pastikan hanya member yang bisa mengakses
+if (empty($_SESSION['user_id']) || $_SESSION['role'] !== 'member') {
+    error_log("Redirect ke login karena session invalid: " . print_r($_SESSION, true));
+    header('Location: ../login.php');
+    exit();
+}
+
 // Tampilkan pesan error/success
 if (isset($_SESSION['error'])) {
     echo '<div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">
@@ -22,17 +32,11 @@ if (isset($_SESSION['message'])) {
     unset($_SESSION['message']);
 }
 
-// Pastikan hanya member yang bisa mengakses
-if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'member') {
-    header('Location: ../login.php');
-    exit();
-}
 
 // Gunakan user_id untuk identifikasi yang lebih aman
 $user_id = $_SESSION['user_id'];
 
-// Koneksi database
-require_once '../config/db.php';
+
 
 // Ambil data member dari database
 $stmt = $pdo->prepare("SELECT * FROM users WHERE id = ?");
@@ -87,11 +91,14 @@ $active_membership = $membership_stmt->fetch();
 $packages_stmt = $pdo->query("SELECT * FROM membership_packages");
 $packages = $packages_stmt->fetchAll(PDO::FETCH_ASSOC);
 
-// Ambil riwayat pembayaran
-$payments_stmt = $pdo->prepare("SELECT p.*, mp.name as package_name 
+// Ambil riwayat pembayaran dengan informasi bulan
+$payments_stmt = $pdo->prepare("SELECT p.*, mp.name as package_name, 
+                                DATE_FORMAT(p.payment_date, '%Y-%m') as payment_month
                                 FROM payments p
                                 JOIN membership_packages mp ON p.package_id = mp.id
-                                WHERE user_id = ? ORDER BY payment_date DESC LIMIT 5");
+                                WHERE user_id = ? 
+                                ORDER BY payment_date DESC 
+                                LIMIT 5");
 $payments_stmt->execute([$user_id]);
 $payments = $payments_stmt->fetchAll(PDO::FETCH_ASSOC);
 
@@ -99,6 +106,23 @@ $payments = $payments_stmt->fetchAll(PDO::FETCH_ASSOC);
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['submit_payment'])) {
     $package_id = $_POST['package_id'];
     $proof_image = '';
+
+    // Validasi: Cek apakah member sudah membeli paket bulan ini
+    $current_month = date('Y-m-01'); // Awal bulan ini
+    $next_month = date('Y-m-01', strtotime('+1 month')); // Awal bulan depan
+
+    $check_payment_stmt = $pdo->prepare("SELECT COUNT(*) as count FROM payments 
+                                        WHERE user_id = ? 
+                                        AND payment_date >= ? 
+                                        AND payment_date < ?");
+    $check_payment_stmt->execute([$user_id, $current_month, $next_month]);
+    $payment_count = $check_payment_stmt->fetch(PDO::FETCH_ASSOC)['count'];
+
+    if ($payment_count > 0) {
+        $_SESSION['error'] = "Anda hanya bisa membeli 1 paket membership per bulan. Pembelian berikutnya bisa dilakukan bulan depan.";
+        header("Location: memberview.php");
+        exit();
+    }
 
     // Handle file upload
     if (isset($_FILES['proof_image']) && $_FILES['proof_image']['error'] == UPLOAD_ERR_OK) {
@@ -222,6 +246,28 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['submit_payment'])) {
             color: black;
             cursor: pointer;
         }
+
+        .attendance-modal {
+            display: none;
+            position: fixed;
+            z-index: 100;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0, 0, 0, 0.4);
+        }
+
+        .attendance-modal-content {
+            background-color: #fefefe;
+            margin: 15% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 500px;
+            border-radius: 8px;
+        }
     </style>
 
 </head>
@@ -245,8 +291,44 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['submit_payment'])) {
         </div>
     </header>
 
+
+
     <!-- Main Content -->
     <main class="pb-16"> <!-- Add padding at bottom for nav bar -->
+
+        <?php
+        // Mengambil ID pengguna dari sesi
+        $user_id = $_SESSION['user_id'];
+
+        // Mengambil data bulan ini dan menghitung latihan bulan ini
+        $current_month = date('Y-m-01');  // Awal bulan ini
+        $next_month = date('Y-m-01', strtotime('+1 month'));  // Awal bulan depan
+        
+        // Query untuk menghitung latihan bulan ini
+        $attend_this_month_stmt = $pdo->prepare("SELECT COUNT(*) as count 
+                                          FROM attendance 
+                                          WHERE user_id = ? 
+                                          AND date >= ? 
+                                          AND date < ?");
+        $attend_this_month_stmt->execute([$user_id, $current_month, $next_month]);
+        $attend_this_month = $attend_this_month_stmt->fetch(PDO::FETCH_ASSOC)['count'];
+
+        // Query untuk menghitung total latihan
+        $total_attend_stmt = $pdo->prepare("SELECT COUNT(*) as count 
+                                    FROM attendance 
+                                    WHERE user_id = ?");
+        $total_attend_stmt->execute([$user_id]);
+        $total_attend = $total_attend_stmt->fetch(PDO::FETCH_ASSOC)['count'];
+
+        // Mengambil data paket membership aktif
+        $membership_stmt = $pdo->prepare("SELECT um.*, mp.name as package_name 
+                                  FROM user_memberships um
+                                  JOIN membership_packages mp ON um.package_id = mp.id
+                                  WHERE um.user_id = ? AND um.status = 'active' AND um.end_date > NOW()");
+        $membership_stmt->execute([$user_id]);
+        $active_membership = $membership_stmt->fetch();
+        ?>
+
 
         <!-- Welcome Section -->
         <section class="bg-white p-4 shadow-sm mb-4">
@@ -258,13 +340,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['submit_payment'])) {
             </div>
             <div class="flex justify-between bg-gray-50 rounded-lg p-3">
                 <div class="text-center">
-                    <p class="text-lg font-bold text-red-600">24</p>
+                    <p class="text-lg font-bold text-red-600"><?= $attend_this_month ?></p>
                     <p class="text-xs text-gray-600">Latihan Bulan Ini</p>
                 </div>
 
-
                 <div class="text-center border-l border-r border-gray-300 px-4">
-                    <p class="text-lg font-bold text-red-600">148</p>
+                    <p class="text-lg font-bold text-red-600"><?= $total_attend ?></p>
                     <p class="text-xs text-gray-600">Total Latihan</p>
                 </div>
 
@@ -341,9 +422,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['submit_payment'])) {
                         <div>
                             <h4 class="font-medium text-green-800">Membership Aktif</h4>
                             <p class="text-sm text-green-600">Paket:
-                                <?= htmlspecialchars($active_membership['package_name']) ?></p>
+                                <?= htmlspecialchars($active_membership['package_name']) ?>
+                            </p>
                             <p class="text-sm text-green-600">Berlaku hingga:
-                                <?= date('d M Y', strtotime($active_membership['end_date'])) ?></p>
+                                <?= date('d M Y', strtotime($active_membership['end_date'])) ?>
+                            </p>
                         </div>
                     </div>
                 </div>
@@ -444,6 +527,20 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['submit_payment'])) {
                 <span class="close">&times;</span>
                 <h3 class="text-lg font-semibold mb-4" id="modalTitle">Pembayaran Paket</h3>
 
+                <div class="mb-4 bg-yellow-50 border-l-4 border-yellow-400 p-4">
+                    <div class="flex">
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-exclamation-circle text-yellow-500"></i>
+                        </div>
+                        <div class="ml-3">
+                            <p class="text-sm text-yellow-700">
+                                Anda hanya dapat membeli 1 paket membership per bulan.
+                                Jika sudah membeli bulan ini, pembelian berikutnya bisa dilakukan bulan depan.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
                 <form id="paymentForm" method="post" enctype="multipart/form-data">
                     <input type="hidden" name="package_id" id="package_id">
 
@@ -516,13 +613,25 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['submit_payment'])) {
         </script>
 
 
+        <?php
+        // Ambil ID user dan tanggal hari ini
+        $user_id = $_SESSION['user_id'];
+        $today = date('Y-m-d');
+
+        // Cek apakah user sudah absen hari ini
+        $check_attendance_stmt = $pdo->prepare("SELECT * FROM attendance WHERE user_id = ? AND date = ?");
+        $check_attendance_stmt->execute([$user_id, $today]);
+        $has_attended_today = $check_attendance_stmt->rowCount() > 0;
+        ?>
+
+
+
 
         <section id="schedule" class="bg-white p-4 shadow-sm mb-4">
             <div class="flex justify-between items-center mb-3">
                 <h3 class="text-md font-semibold">Jadwal</h3>
             </div>
 
-            <!-- Grid with 2 columns -->
             <div class="grid grid-cols-2 gap-4">
                 <!-- Column 1: Senin, Selasa, Rabu -->
                 <div>
@@ -533,23 +642,61 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['submit_payment'])) {
                         <?php
                         if (isset($groupedClasses[$day])):
                             foreach ($groupedClasses[$day] as $class): ?>
-                                <div class="flex items-center p-3 border rounded-lg bg-gray-50 mb-3">
-                                    <div class="h-10 w-10 rounded-full bg-red-100 flex items-center justify-center mr-3">
-                                        <i class="fas fa-dumbbell text-red-600"></i>
-                                    </div>
-                                    <div class="flex-1">
-                                        <div class="flex justify-between">
-                                            <h4 class="font-medium"><?= htmlspecialchars($class['coach']) ?></h4>
-                                            <span
-                                                class="text-xs bg-gray-200 px-2 py-1 rounded-full"><?= htmlspecialchars($class['time']) ?></span>
+                                <!-- Cek apakah sudah absen -->
+                                <?php if ($has_attended_today): ?>
+                                    <!-- Jika sudah absen, tombol disabled -->
+                                    <div class="flex items-center p-3 border rounded-lg bg-gray-50 mb-3">
+                                        <div class="h-10 w-10 rounded-full bg-red-100 flex items-center justify-center mr-3">
+                                            <i class="fas fa-dumbbell text-red-600"></i>
                                         </div>
-                                        <div class="flex text-sm text-gray-500">
-                                            <span class="mr-3"><i class="far fa-clock mr-1"></i>
-                                                <?= htmlspecialchars($class['time']) ?></span>
-                                            <span><i class="far fa-user mr-1"></i> <?= htmlspecialchars($class['coach']) ?></span>
+                                        <div class="flex-1">
+                                            <div class="flex justify-between">
+                                                <h4 class="font-medium"><?= htmlspecialchars($class['coach']) ?></h4>
+                                                <span
+                                                    class="text-xs bg-gray-200 px-2 py-1 rounded-full"><?= htmlspecialchars($class['time']) ?></span>
+                                            </div>
+                                            <div class="flex text-sm text-gray-500">
+                                                <span class="mr-3"><i
+                                                        class="far fa-clock mr-1"></i><?= htmlspecialchars($class['time']) ?></span>
+                                                <span><i class="far fa-user mr-1"></i><?= htmlspecialchars($class['coach']) ?></span>
+                                            </div>
                                         </div>
+                                        <!-- Tombol disabled jika sudah absen -->
+                                        <button disabled class="ml-2 bg-gray-400 text-white p-2 rounded-md cursor-not-allowed"
+                                            title="Anda sudah absen hari ini">
+                                            <i class="fas fa-check"></i>
+                                        </button>
                                     </div>
-                                </div>
+                                <?php else: ?>
+                                    <!-- Tombol aktif jika belum absen -->
+                                    <div class="flex items-center p-3 border rounded-lg bg-gray-50 mb-3">
+                                        <div class="h-10 w-10 rounded-full bg-red-100 flex items-center justify-center mr-3">
+                                            <i class="fas fa-dumbbell text-red-600"></i>
+                                        </div>
+                                        <div class="flex-1">
+                                            <div class="flex justify-between">
+                                                <h4 class="font-medium"><?= htmlspecialchars($class['coach']) ?></h4>
+                                                <span
+                                                    class="text-xs bg-gray-200 px-2 py-1 rounded-full"><?= htmlspecialchars($class['time']) ?></span>
+                                            </div>
+                                            <div class="flex text-sm text-gray-500">
+                                                <span class="mr-3"><i
+                                                        class="far fa-clock mr-1"></i><?= htmlspecialchars($class['time']) ?></span>
+                                                <span><i class="far fa-user mr-1"></i><?= htmlspecialchars($class['coach']) ?></span>
+                                            </div>
+                                        </div>
+                                        <!-- Tombol absensi aktif -->
+                                        <button onclick="openAttendanceModal(
+                                    '<?= $class['id'] ?>', 
+                                    '<?= htmlspecialchars($class['coach']) ?>', 
+                                    '<?= htmlspecialchars($class['day']) ?>', 
+                                    '<?= htmlspecialchars($class['time']) ?>', 
+                                    '<?= htmlspecialchars($class['coach']) ?>'
+                                )" class="ml-2 bg-gray-500 text-white p-2 rounded-md hover:bg-red-600">
+                                            <i class="fas fa-check"></i>
+                                        </button>
+                                    </div>
+                                <?php endif; ?>
                             <?php endforeach;
                         else: ?>
                             <p class="text-gray-500">Tidak ada kelas yang dijadwalkan untuk <?= $day ?>.</p>
@@ -566,23 +713,61 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['submit_payment'])) {
                         <?php
                         if (isset($groupedClasses[$day])):
                             foreach ($groupedClasses[$day] as $class): ?>
-                                <div class="flex items-center p-3 border rounded-lg bg-gray-50 mb-3">
-                                    <div class="h-10 w-10 rounded-full bg-red-100 flex items-center justify-center mr-3">
-                                        <i class="fas fa-dumbbell text-red-600"></i>
-                                    </div>
-                                    <div class="flex-1">
-                                        <div class="flex justify-between">
-                                            <h4 class="font-medium"><?= htmlspecialchars($class['coach']) ?></h4>
-                                            <span
-                                                class="text-xs bg-gray-200 px-2 py-1 rounded-full"><?= htmlspecialchars($class['time']) ?></span>
+                                <!-- Cek apakah sudah absen -->
+                                <?php if ($has_attended_today): ?>
+                                    <!-- Jika sudah absen, tombol disabled -->
+                                    <div class="flex items-center p-3 border rounded-lg bg-gray-50 mb-3">
+                                        <div class="h-10 w-10 rounded-full bg-red-100 flex items-center justify-center mr-3">
+                                            <i class="fas fa-dumbbell text-red-600"></i>
                                         </div>
-                                        <div class="flex text-sm text-gray-500">
-                                            <span class="mr-3"><i class="far fa-clock mr-1"></i>
-                                                <?= htmlspecialchars($class['time']) ?></span>
-                                            <span><i class="far fa-user mr-1"></i> <?= htmlspecialchars($class['coach']) ?></span>
+                                        <div class="flex-1">
+                                            <div class="flex justify-between">
+                                                <h4 class="font-medium"><?= htmlspecialchars($class['coach']) ?></h4>
+                                                <span
+                                                    class="text-xs bg-gray-200 px-2 py-1 rounded-full"><?= htmlspecialchars($class['time']) ?></span>
+                                            </div>
+                                            <div class="flex text-sm text-gray-500">
+                                                <span class="mr-3"><i
+                                                        class="far fa-clock mr-1"></i><?= htmlspecialchars($class['time']) ?></span>
+                                                <span><i class="far fa-user mr-1"></i><?= htmlspecialchars($class['coach']) ?></span>
+                                            </div>
                                         </div>
+                                        <!-- Tombol disabled jika sudah absen -->
+                                        <button disabled class="ml-2 bg-gray-400 text-white p-2 rounded-md cursor-not-allowed"
+                                            title="Anda sudah absen hari ini">
+                                            <i class="fas fa-check"></i>
+                                        </button>
                                     </div>
-                                </div>
+                                <?php else: ?>
+                                    <!-- Tombol aktif jika belum absen -->
+                                    <div class="flex items-center p-3 border rounded-lg bg-gray-50 mb-3">
+                                        <div class="h-10 w-10 rounded-full bg-red-100 flex items-center justify-center mr-3">
+                                            <i class="fas fa-dumbbell text-red-600"></i>
+                                        </div>
+                                        <div class="flex-1">
+                                            <div class="flex justify-between">
+                                                <h4 class="font-medium"><?= htmlspecialchars($class['coach']) ?></h4>
+                                                <span
+                                                    class="text-xs bg-gray-200 px-2 py-1 rounded-full"><?= htmlspecialchars($class['time']) ?></span>
+                                            </div>
+                                            <div class="flex text-sm text-gray-500">
+                                                <span class="mr-3"><i
+                                                        class="far fa-clock mr-1"></i><?= htmlspecialchars($class['time']) ?></span>
+                                                <span><i class="far fa-user mr-1"></i><?= htmlspecialchars($class['coach']) ?></span>
+                                            </div>
+                                        </div>
+                                        <!-- Tombol absensi aktif -->
+                                        <button onclick="openAttendanceModal(
+                                    '<?= $class['id'] ?>', 
+                                    '<?= htmlspecialchars($class['coach']) ?>', 
+                                    '<?= htmlspecialchars($class['day']) ?>', 
+                                    '<?= htmlspecialchars($class['time']) ?>', 
+                                    '<?= htmlspecialchars($class['coach']) ?>'
+                                )" class="ml-2 bg-gray-500 text-white p-2 rounded-md hover:bg-red-600">
+                                            <i class="fas fa-check"></i>
+                                        </button>
+                                    </div>
+                                <?php endif; ?>
                             <?php endforeach;
                         else: ?>
                             <p class="text-gray-500">Tidak ada kelas yang dijadwalkan untuk <?= $day ?>.</p>
@@ -591,7 +776,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['submit_payment'])) {
                 </div>
             </div>
         </section>
-
 
 
 
@@ -630,6 +814,26 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['submit_payment'])) {
             });
         </script>
 
+        <?php
+        // … koneksi, session, dsb …
+        
+        $att_stmt = $pdo->prepare("
+    SELECT 
+      a.date         AS attendance_date,
+      a.time         AS attendance_time,
+      a.status,
+      cs.coach,
+      cs.day,
+      cs.time         AS class_time
+    FROM attendance a
+    JOIN class_schedule cs ON a.class_id = cs.id
+    WHERE a.user_id = ?
+    ORDER BY a.date DESC, a.time DESC
+    LIMIT 10
+");
+        $att_stmt->execute([$user_id]);
+        $attendances = $att_stmt->fetchAll(PDO::FETCH_ASSOC);
+        ?>
 
 
         <!-- Attendance History -->
@@ -649,36 +853,41 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['submit_payment'])) {
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-200 text-sm">
-                        <tr>
-                            <td class="px-3 py-3">16 Apr 2025</td>
-                            <td class="px-3 py-3">Beginner Class</td>
-                            <td class="px-3 py-3">
-                                <span class="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800">Hadir</span>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td class="px-3 py-3">15 Apr 2025</td>
-                            <td class="px-3 py-3">Sparring Session</td>
-                            <td class="px-3 py-3">
-                                <span class="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800">Hadir</span>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td class="px-3 py-3">14 Apr 2025</td>
-                            <td class="px-3 py-3">Advanced Technique</td>
-                            <td class="px-3 py-3">
-                                <span
-                                    class="px-2 py-1 text-xs rounded-full bg-yellow-100 text-yellow-800">Terlambat</span>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td class="px-3 py-3">12 Apr 2025</td>
-                            <td class="px-3 py-3">Strength Training</td>
-                            <td class="px-3 py-3">
-                                <span class="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800">Hadir</span>
-                            </td>
-                        </tr>
+                        <?php if (!empty($attendances)): ?>
+                            <?php foreach ($attendances as $rec): ?>
+                                <tr class="border-b">
+                                    <!-- Tanggal (hanya tanggal, tanpa waktu) -->
+                                    <td class="px-3 py-3 text-sm">
+                                        <?= date('d M Y', strtotime($rec['attendance_date'])) ?>
+                                    </td>
+                                    <!-- Nama coach + hari & jam kelas -->
+                                    <td class="px-3 py-3 text-sm">
+                                        <?= htmlspecialchars($rec['coach']) ?>
+                                        (<?= htmlspecialchars($rec['day']) ?>, <?= htmlspecialchars($rec['class_time']) ?>)
+                                    </td>
+                                    <!-- Status -->
+                                    <td class="px-3 py-3">
+                                        <?php
+                                        $cls = $rec['status'] === 'present'
+                                            ? 'bg-green-100 text-green-800'
+                                            : 'bg-yellow-100 text-yellow-800';
+                                        ?>
+                                        <span class="px-2 py-1 text-xs rounded-full <?= $cls ?>">
+                                            <?= ucfirst($rec['status']) ?>
+                                        </span>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        <?php else: ?>
+                            <tr>
+                                <td colspan="3" class="text-center text-gray-500 py-4">
+                                    Belum ada riwayat kehadiran.
+                                </td>
+                            </tr>
+                        <?php endif; ?>
                     </tbody>
+
+
                 </table>
             </div>
         </section>
@@ -782,6 +991,66 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['submit_payment'])) {
             </a>
         </div>
     </nav>
+
+    <!-- Tambahkan di bagian body sebelum penutup </body> -->
+    <div id="attendanceModal" class="attendance-modal">
+        <div class="attendance-modal-content">
+            <span class="close" onclick="closeAttendanceModal()">&times;</span>
+            <h3 class="text-lg font-semibold mb-4">Absensi Kelas</h3>
+            <form id="attendanceForm" method="post" action="process_attendance.php">
+                <input type="hidden" name="class_id" id="attendanceClassId">
+                <input type="hidden" name="user_id" value="<?= $user_id ?>">
+
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-bold mb-2">Kelas:</label>
+                    <p class="text-gray-900" id="attendanceClassName"></p>
+                </div>
+
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-bold mb-2">Hari & Jam:</label>
+                    <p class="text-gray-900" id="attendanceClassTime"></p>
+                </div>
+
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-bold mb-2">Pelatih:</label>
+                    <p class="text-gray-900" id="attendanceClassCoach"></p>
+                </div>
+
+                <div class="flex justify-end">
+                    <button type="button" onclick="closeAttendanceModal()"
+                        class="bg-gray-300 hover:bg-gray-400 text-gray-800 py-2 px-4 rounded mr-2">
+                        Batal
+                    </button>
+                    <button type="submit" class="bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded">
+                        Konfirmasi Absensi
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Fungsi untuk membuka modal absensi
+        function openAttendanceModal(classId, className, classDay, classTime, classCoach) {
+            document.getElementById('attendanceClassId').value = classId;
+            document.getElementById('attendanceClassName').textContent = className;
+            document.getElementById('attendanceClassTime').textContent = classDay + ', ' + classTime;
+            document.getElementById('attendanceClassCoach').textContent = classCoach;
+            document.getElementById('attendanceModal').style.display = 'block';
+        }
+
+        // Fungsi untuk menutup modal absensi
+        function closeAttendanceModal() {
+            document.getElementById('attendanceModal').style.display = 'none';
+        }
+
+        // Tutup modal ketika klik di luar
+        window.onclick = function (event) {
+            if (event.target == document.getElementById('attendanceModal')) {
+                closeAttendanceModal();
+            }
+        }
+    </script>
 </body>
 
 </html>

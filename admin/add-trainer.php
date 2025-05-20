@@ -1,4 +1,5 @@
 <?php
+
 $conn = new mysqli("localhost", "root", "", "kingmuaythai_db");
 
 if ($conn->connect_error) {

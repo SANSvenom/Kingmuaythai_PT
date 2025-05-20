@@ -1,3 +1,11 @@
+<?php
+session_start(); 
+// Jika belum ada session user, redirect ke login
+if (!isset($_SESSION['user_id'])) {
+    header('Location: /login.php');
+    exit;
+}
+?>
 <!DOCTYPE html>
 <html lang="en">
 
@@ -51,48 +59,58 @@
         </div>
     </div>
 
-    <!-- Edit Trainer Modal -->
-    <div id="editTrainerModal"
-        class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 hidden">
-        <div class="bg-white rounded-lg w-full max-w-lg p-6">
-            <h2 class="text-lg font-semibold mb-4">Edit Trainer</h2>
-            <form id="editTrainerForm" method="POST" enctype="multipart/form-data">
-                <input type="hidden" name="id" id="editTrainerId">
-                <div class="mb-4">
-                    <label class="block text-sm font-medium mb-1">Name</label>
-                    <input type="text" name="name" id="editTrainerName" required class="w-full border rounded p-2">
+<!-- Edit Trainer Modal -->
+<div id="editTrainerModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 hidden">
+    <div class="bg-white rounded-lg w-full max-w-lg p-6">
+        <h2 class="text-lg font-semibold mb-4">Edit Trainer</h2>
+        <form id="editTrainerForm" method="POST" enctype="multipart/form-data">
+            <input type="hidden" name="id" id="editTrainerId">
+            <input type="hidden" name="current_cover_photo" id="editCurrentCoverPhoto">
+            
+            <div class="mb-4">
+                <label class="block text-sm font-medium mb-1">Name</label>
+                <input type="text" name="name" id="editTrainerName" required class="w-full border rounded p-2">
+            </div>
+            
+            <div class="mb-4">
+                <label class="block text-sm font-medium mb-1">Position</label>
+                <input type="text" name="position" id="editTrainerPosition" required class="w-full border rounded p-2">
+            </div>
+            
+            <div class="mb-4">
+                <label class="block text-sm font-medium mb-1">Status</label>
+                <select name="status" id="editTrainerStatus" class="w-full border rounded p-2">
+                    <option value="Active">Active</option>
+                    <option value="Inactive">Inactive</option>
+                </select>
+            </div>
+            
+            <div class="mb-4">
+                <label class="block text-sm font-medium mb-1">Specialties</label>
+                <input type="text" name="specialties" id="editTrainerSpecialties" class="w-full border rounded p-2">
+            </div>
+            
+            <div class="mb-4">
+                <label class="block text-sm font-medium mb-1">Cover Photo</label>
+                <div class="flex items-center space-x-4">
+                    <div class="flex-1">
+                        <input type="file" name="cover_photo" id="editTrainerCoverPhoto" accept="image/*" class="w-full border rounded p-2 mb-2">
+                        <div class="text-xs text-gray-500">Biarkan kosong jika tidak ingin mengubah foto</div>
+                    </div>
+                    <div class="w-24 h-24 border rounded overflow-hidden">
+                        <img id="editCoverPreview" class="w-full h-full object-cover">
+                    </div>
                 </div>
-                <div class="mb-4">
-                    <label class="block text-sm font-medium mb-1">Position</label>
-                    <input type="text" name="position" id="editTrainerPosition" required
-                        class="w-full border rounded p-2">
-                </div>
-                <div class="mb-4">
-                    <label class="block text-sm font-medium mb-1">Status</label>
-                    <select name="status" id="editTrainerStatus" class="w-full border rounded p-2">
-                        <option value="Active">Active</option>
-                        <option value="Inactive">Inactive</option>
-                    </select>
-                </div>
-                <div class="mb-4">
-                    <label class="block text-sm font-medium mb-1">Specialties</label>
-                    <input type="text" name="specialties" id="editTrainerSpecialties" class="w-full border rounded p-2">
-                </div>
-                <div class="mb-4">
-                    <label class="block text-sm font-medium mb-1">Cover Photo</label>
-                    <input type="file" name="cover_photo" id="editTrainerCoverPhoto" accept="image/*"
-                        class="w-full border rounded p-2 mb-2">
-                    <img id="editCoverPreview" class="mt-2 hidden w-full h-48 object-cover rounded">
-                </div>
-                <div class="flex justify-end space-x-2">
-                    <button type="button" onclick="document.getElementById('editTrainerModal').classList.add('hidden')"
-                        class="px-4 py-2 bg-gray-300 rounded">Cancel</button>
-                    <button type="submit" id="editTrainerBtn" class="px-4 py-2 bg-red-600 text-white rounded">Save
-                        Changes</button>
-                </div>
-            </form>
-        </div>
+            </div>
+            
+            <div class="flex justify-end space-x-2">
+                <button type="button" onclick="document.getElementById('editTrainerModal').classList.add('hidden')" 
+                    class="px-4 py-2 bg-gray-300 rounded">Cancel</button>
+                <button type="submit" id="editTrainerBtn" class="px-4 py-2 bg-red-600 text-white rounded">Save Changes</button>
+            </div>
+        </form>
     </div>
+</div>
 
     <!-- Main Layout -->
     <div class="flex h-screen">
@@ -189,26 +207,49 @@
             });
         });
 
-        // Open Edit Trainer Modal (AJAX)
-        $('.editTrainerBtn').click(function () {
-            var trainerId = $(this).data('id');
+// Open Edit Trainer Modal (AJAX)
 
-            // Get trainer data from the server via AJAX
-            $.ajax({
-                url: 'get-trainer.php',
-                method: 'GET',
-                data: { id: trainerId },
-                success: function (response) {
-                    var trainer = JSON.parse(response);
-                    $('#editTrainerId').val(trainer.id);
-                    $('#editTrainerName').val(trainer.name);
-                    $('#editTrainerPosition').val(trainer.position);
-                    $('#editTrainerStatus').val(trainer.status);
-                    $('#editTrainerSpecialties').val(trainer.specialties);
-                    $('#editTrainerModal').removeClass('hidden');
+$('.editTrainerBtn').click(function() {
+    var trainerId = $(this).data('id');
+    var card = $(this).closest('.trainer-card');
+    var currentImg = card.find('img').attr('src');
+    
+    // Get trainer data via AJAX
+    $.ajax({
+        url: 'get-trainer.php',
+        method: 'GET',
+        data: { id: trainerId },
+        success: function(response) {
+            var trainer = JSON.parse(response);
+            
+            // Fill form with existing data
+            $('#editTrainerId').val(trainer.id);
+            $('#editTrainerName').val(trainer.name);
+            $('#editTrainerPosition').val(trainer.position);
+            $('#editTrainerStatus').val(trainer.status);
+            $('#editTrainerSpecialties').val(trainer.specialties);
+            $('#editCurrentCoverPhoto').val(trainer.cover_photo);
+            
+            // Show current image preview
+            $('#editCoverPreview').attr('src', trainer.cover_photo);
+            
+            // Preview new image if selected
+            $('#editTrainerCoverPhoto').change(function(e) {
+                var file = e.target.files[0];
+                if (file) {
+                    var reader = new FileReader();
+                    reader.onload = function(e) {
+                        $('#editCoverPreview').attr('src', e.target.result);
+                    }
+                    reader.readAsDataURL(file);
                 }
             });
-        });
+            
+            // Show modal
+            $('#editTrainerModal').removeClass('hidden');
+        }
+    });
+});
 
         // Handle Trainer Edit Form Submission
         $('#editTrainerForm').submit(function (e) {

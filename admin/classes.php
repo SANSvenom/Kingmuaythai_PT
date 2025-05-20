@@ -1,4 +1,12 @@
 <?php
+
+session_start(); 
+// Jika belum ada session user, redirect ke login
+if (!isset($_SESSION['user_id'])) {
+    header('Location: /login.php');
+    exit;
+}
+
 // Koneksi ke database
 $host = 'localhost'; // Host database Anda
 $dbname = 'kingmuaythai_db'; // Nama database Anda
@@ -38,15 +46,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
 
+
     // Menghapus kelas
     if (isset($_POST['delete_id'])) {
         $id = $_POST['delete_id'];
-        $query = "DELETE FROM class_schedule WHERE id = ?";
-        $stmt = $pdo->prepare($query);
-        $stmt->execute([$id]);
-        echo 'deleted'; // Kelas berhasil dihapus
+
+        try {
+            // Mulai transaction
+            $pdo->beginTransaction();
+
+            // 1) Hapus dulu semua attendance yang terkait
+            $stmt = $pdo->prepare("DELETE FROM attendance WHERE class_id = ?");
+            $stmt->execute([$id]);
+
+            // 2) Hapus record di class_schedule
+            $stmt = $pdo->prepare("DELETE FROM class_schedule WHERE id = ?");
+            $stmt->execute([$id]);
+
+            // Commit jika semua sukses
+            $pdo->commit();
+
+            echo 'deleted';
+        } catch (PDOException $e) {
+            // Roll back jika ada error
+            $pdo->rollBack();
+            http_response_code(500);
+            echo 'error: ' . $e->getMessage();
+        }
         exit;
     }
+
+
 }
 
 // Mengambil data jadwal kelas dari database dan urutkan berdasarkan hari dan jam
@@ -208,11 +238,14 @@ $trainers = $trainers_stmt->fetchAll(PDO::FETCH_COLUMN);
                                             </select>
                                         </div>
                                         <div class="mb-4">
-                                            <label for="coach" class="block text-sm font-medium text-gray-700">Pelatih</label>
+                                            <label for="coach"
+                                                class="block text-sm font-medium text-gray-700">Pelatih</label>
                                             <select id="coach" name="coach" class="form-input" required>
                                                 <option value="">Pilih Pelatih</option>
                                                 <?php foreach ($trainers as $trainer): ?>
-                                                    <option value="<?= htmlspecialchars($trainer) ?>"><?= htmlspecialchars($trainer) ?></option>
+                                                    <option value="<?= htmlspecialchars($trainer) ?>">
+                                                        <?= htmlspecialchars($trainer) ?>
+                                                    </option>
                                                 <?php endforeach; ?>
                                             </select>
                                         </div>
@@ -250,42 +283,73 @@ $trainers = $trainers_stmt->fetchAll(PDO::FETCH_COLUMN);
             const timeInput = document.getElementById('time');
 
             // Edit Button
-document.querySelectorAll('.edit-btn').forEach(btn => {
-    btn.addEventListener('click', function () {
-        const id = this.getAttribute('data-id');
-        const row = this.closest('tr');
-        const day = row.cells[0].textContent.trim();
-        const coach = row.cells[1].textContent.trim();
-        const time = row.cells[2].textContent.trim();
+            document.querySelectorAll('.edit-btn').forEach(btn => {
+                btn.addEventListener('click', function () {
+                    const id = this.getAttribute('data-id');
+                    const row = this.closest('tr');
+                    const day = row.cells[0].textContent.trim();
+                    const coach = row.cells[1].textContent.trim();
+                    const time = row.cells[2].textContent.trim();
 
-        // Mengisi data pada modal
-        document.getElementById('modal-title').textContent = "Edit Kelas";
-        document.getElementById('class-id').value = id;
-        document.getElementById('day').value = day;
-        document.getElementById('coach').value = coach;
-        document.getElementById('time').value = time;
+                    // Mengisi data pada modal
+                    document.getElementById('modal-title').textContent = "Edit Kelas";
+                    document.getElementById('class-id').value = id;
+                    document.getElementById('day').value = day;
+                    document.getElementById('coach').value = coach;
+                    document.getElementById('time').value = time;
 
-        // Menampilkan modal
-        classModal.classList.remove('hidden');
-        classModal.classList.add('flex');
-    });
-});
+                    // Menampilkan modal
+                    classModal.classList.remove('hidden');
+                    classModal.classList.add('flex');
+                });
+            });
 
 
             // Delete Button
+            // Ganti bagian delete button dengan ini
             document.querySelectorAll('.delete-btn').forEach(btn => {
-                btn.addEventListener('click', function () {
+                btn.addEventListener('click', function (e) {
+                    e.preventDefault(); // Mencegah perilaku default
+
                     const id = this.getAttribute('data-id');
+                    if (!id) {
+                        console.error('ID tidak ditemukan');
+                        return;
+                    }
+
                     if (confirm("Apakah Anda yakin ingin menghapus kelas ini?")) {
-                        const xhr = new XMLHttpRequest();
-                        xhr.open('POST', '', true);
-                        xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
-                        xhr.onload = function () {
-                            if (xhr.status === 200) {
-                                location.reload(); // Memuat ulang halaman setelah penghapusan
+                        // Gunakan FormData untuk mengirim data
+                        const formData = new FormData();
+                        formData.append('delete_id', id);
+
+                        fetch(window.location.href, {
+                            method: 'POST',
+                            body: new URLSearchParams(formData),
+                            headers: {
+                                'Content-Type': 'application/x-www-form-urlencoded',
                             }
-                        };
-                        xhr.send(`delete_id=${id}`);
+                        })
+                            .then(response => {
+                                if (!response.ok) {
+                                    throw new Error('Network response was not ok');
+                                }
+                                return response.text();
+                            })
+                            .then(data => {
+                                if (data === 'deleted') {
+                                    // Hapus baris dari tabel tanpa reload
+                                    const row = this.closest('tr');
+                                    if (row) {
+                                        row.remove();
+                                    }
+                                    // Atau reload halaman jika lebih sesuai
+                                    // location.reload();
+                                }
+                            })
+                            .catch(error => {
+                                console.error('Error:', error);
+                                alert('Gagal menghapus data: ' + error.message);
+                            });
                     }
                 });
             });

@@ -4,6 +4,56 @@ if (!isset($_SESSION["username"])) {
     header("Location: login.php");
     exit;
 }
+
+
+// Pastikan hanya admin yang bisa mengakses
+if (empty($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
+    header('Location: login.php');
+    exit;
+}
+
+// Koneksi database
+require_once '../config/db.php';
+
+// Pastikan koneksi berhasil
+if (!$pdo) {
+    die("Koneksi database gagal");
+}
+
+// Ambil total anggota
+$stmt = $pdo->query("SELECT COUNT(*) as total_members FROM users WHERE role != 'admin'");
+$total_members = $stmt->fetch()['total_members'];
+
+// Ambil jumlah kelas aktif
+$stmt = $pdo->query("SELECT COUNT(*) as active_classes FROM class_schedule");
+$active_classes = $stmt->fetch()['active_classes'];
+
+// Ambil jumlah pelatih
+$stmt = $pdo->query("SELECT COUNT(*) as total_trainers FROM trainers");
+$total_trainers = $stmt->fetch()['total_trainers'];
+
+// Ambil pembayaran terakhir
+$stmt = $pdo->query("SELECT SUM(amount) as total_revenue FROM payments WHERE status = 'paid'");
+$total_revenue = $stmt->fetch()['total_revenue'];
+
+// Mengambil data pembayaran untuk grafik (bulan terakhir, status 'paid')
+$data = [];
+$stmt = $pdo->query("SELECT COUNT(*) as total, MONTH(payment_date) as month 
+                     FROM payments 
+                     WHERE status = 'paid' 
+                     GROUP BY month 
+                     ORDER BY month DESC 
+                     LIMIT 12");
+
+while ($row = $stmt->fetch()) {
+    $data[] = $row;
+}
+
+
+
+// Encode data untuk digunakan di JavaScript
+$data_json = json_encode($data);
+
 ?>
 
 <!DOCTYPE html>
@@ -11,13 +61,15 @@ if (!isset($_SESSION["username"])) {
 
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
-    <!-- <script src="https://cdn.tailwindcss.com"></script> -->
-    <title>Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 
 <body class="bg-gray-100 font-sans">
+
     <div class="flex h-screen">
         <?php include '../partials/sidebar.php'; ?>
 
@@ -58,12 +110,8 @@ if (!isset($_SESSION["username"])) {
                                                 <dt class="text-sm font-medium text-gray-500 truncate">Total Members
                                                 </dt>
                                                 <dd class="flex items-baseline">
-                                                    <div class="text-2xl font-semibold text-gray-900">248</div>
-                                                    <div
-                                                        class="ml-2 flex items-baseline text-sm font-semibold text-green-600">
-                                                        <i class="fas fa-arrow-up"></i>
-                                                        <span class="ml-1">12%</span>
-                                                    </div>
+                                                    <div class="text-2xl font-semibold text-gray-900">
+                                                        <?= $total_members ?></div>
                                                 </dd>
                                             </dl>
                                         </div>
@@ -82,12 +130,8 @@ if (!isset($_SESSION["username"])) {
                                                 <dt class="text-sm font-medium text-gray-500 truncate">Active Classes
                                                 </dt>
                                                 <dd class="flex items-baseline">
-                                                    <div class="text-2xl font-semibold text-gray-900">42</div>
-                                                    <div
-                                                        class="ml-2 flex items-baseline text-sm font-semibold text-green-600">
-                                                        <i class="fas fa-arrow-up"></i>
-                                                        <span class="ml-1">5%</span>
-                                                    </div>
+                                                    <div class="text-2xl font-semibold text-gray-900">
+                                                        <?= $active_classes ?></div>
                                                 </dd>
                                             </dl>
                                         </div>
@@ -105,138 +149,98 @@ if (!isset($_SESSION["username"])) {
                                             <dl>
                                                 <dt class="text-sm font-medium text-gray-500 truncate">Trainers</dt>
                                                 <dd class="flex items-baseline">
-                                                    <div class="text-2xl font-semibold text-gray-900">8</div>
-                                                    <div
-                                                        class="ml-2 flex items-baseline text-sm font-medium text-gray-500">
-                                                        <span class="ml-1">No change</span>
-                                                    </div>
+                                                    <div class="text-2xl font-semibold text-gray-900">
+                                                        <?= $total_trainers ?></div>
                                                 </dd>
                                             </dl>
                                         </div>
                                     </div>
                                 </div>
                             </div>
-                        </div>
 
-                        <!-- Recent Members and Tasks Section -->
-                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                            <!-- Recent Members -->
-                            <div class="bg-white shadow rounded-lg p-6">
-                                <div class="flex items-center justify-between mb-4">
-                                    <h2 class="text-lg font-medium text-gray-900">Recent Members</h2>
-                                    <a href="/admin/members.php" class="text-sm text-red-600 hover:text-red-500">View All</a>
-                                </div>
-                                <div class="space-y-3">
-                                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                                        <div class="flex items-center">
-                                            <div
-                                                class="w-8 h-8 rounded-full bg-red-500 flex items-center justify-center text-white text-sm">
-                                                JD</div>
-                                            <div class="ml-3">
-                                                <div class="text-sm font-medium">John Doe</div>
-                                                <div class="text-xs text-gray-500">Premium Plan</div>
-                                            </div>
-                                        </div>
-                                        <div class="text-xs text-gray-500">Today</div>
-                                    </div>
 
-                                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                                        <div class="flex items-center">
-                                            <div
-                                                class="w-8 h-8 rounded-full bg-yellow-500 flex items-center justify-center text-white text-sm">
-                                                SP</div>
-                                            <div class="ml-3">
-                                                <div class="text-sm font-medium">Sarah Parker</div>
-                                                <div class="text-xs text-gray-500">Standard Plan</div>
-                                            </div>
+                            <!-- Total Revenue -->
+                            <div class="bg-white overflow-hidden shadow rounded-lg">
+                                <div class="px-4 py-5 sm:p-6">
+                                    <div class="flex items-center">
+                                        <div class="flex-shrink-0 bg-green-100 rounded-md p-3">
+                                            <i class="fas fa-dollar-sign text-green-600"></i>
                                         </div>
-                                        <div class="text-xs text-gray-500">Yesterday</div>
-                                    </div>
-
-                                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                                        <div class="flex items-center">
-                                            <div
-                                                class="w-8 h-8 rounded-full bg-green-500 flex items-center justify-center text-white text-sm">
-                                                MT</div>
-                                            <div class="ml-3">
-                                                <div class="text-sm font-medium">Michael Thompson</div>
-                                                <div class="text-xs text-gray-500">Basic Plan</div>
-                                            </div>
-                                        </div>
-                                        <div class="text-xs text-gray-500">3 days ago</div>
-                                    </div>
-
-                                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                                        <div class="flex items-center">
-                                            <div
-                                                class="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white text-sm">
-                                                AJ</div>
-                                            <div class="ml-3">
-                                                <div class="text-sm font-medium">Amanda Johnson</div>
-                                                <div class="text-xs text-gray-500">Premium Plan</div>
-                                            </div>
-                                        </div>
-                                        <div class="text-xs text-gray-500">1 week ago</div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Tasks -->
-                            <div class="bg-white shadow rounded-lg p-6">
-                                <div class="flex items-center justify-between mb-4">
-                                    <h2 class="text-lg font-medium text-gray-900">Your Tasks</h2>
-                                    <a href="#" class="text-sm text-red-600 hover:text-red-500">View All</a>
-                                </div>
-                                <div class="space-y-3">
-                                    <div class="flex items-center p-3 bg-gray-50 rounded-lg">
-                                        <div class="h-5 w-5 mr-3 rounded border border-gray-300"></div>
-                                        <div class="flex-1">
-                                            <div class="text-sm font-medium">Update training schedule</div>
-                                            <div class="text-xs text-gray-500">Due today</div>
-                                        </div>
-                                    </div>
-
-                                    <div class="flex items-center p-3 bg-gray-50 rounded-lg">
-                                        <div class="h-5 w-5 mr-3 rounded border border-gray-300"></div>
-                                        <div class="flex-1">
-                                            <div class="text-sm font-medium">Call new equipment supplier</div>
-                                            <div class="text-xs text-gray-500">Due tomorrow</div>
-                                        </div>
-                                    </div>
-
-                                    <div class="flex items-center p-3 bg-gray-50 rounded-lg">
-                                        <div
-                                            class="h-5 w-5 mr-3 rounded border border-gray-300 bg-red-600 flex items-center justify-center text-white">
-                                            <i class="fas fa-check text-xs"></i>
-                                        </div>
-                                        <div class="flex-1">
-                                            <div class="text-sm font-medium">Review new member applications</div>
-                                            <div class="text-xs text-gray-500">Completed</div>
-                                        </div>
-                                    </div>
-
-                                    <div class="flex items-center p-3 bg-gray-50 rounded-lg">
-                                        <div class="h-5 w-5 mr-3 rounded border border-gray-300"></div>
-                                        <div class="flex-1">
-                                            <div class="text-sm font-medium">Prepare for weekend tournament</div>
-                                            <div class="text-xs text-gray-500">Due in 3 days</div>
+                                        <div class="ml-5 w-0 flex-1">
+                                            <dl>
+                                                <dt class="text-sm font-medium text-gray-500 truncate">Total Revenue
+                                                    (IDR)</dt>
+                                                <dd class="flex items-baseline">
+                                                    <div class="text-2xl font-semibold text-gray-900">Rp
+                                                        <?= number_format($total_revenue, 0, ',', '.') ?></div>
+                                                </dd>
+                                            </dl>
                                         </div>
                                     </div>
                                 </div>
                             </div>
+
+
                         </div>
 
-                        <!-- Action Buttons -->
-                        <div class="mt-6 flex gap-4">
-                            <a href="members.php" class="bg-red-700 hover:bg-red-800 text-white py-2 px-4 rounded-md flex items-center">
-                                <i class="fas fa-users mr-2"></i>
-                                Manage Members
-                            </a>
+                        <!-- Revenue Chart -->
+                        <div class="bg-white shadow rounded-lg p-6">
+                            <h2 class="text-lg font-medium text-gray-900 mb-4">Revenue Chart (Last 12 Months)</h2>
+                            <canvas id="revenueChart"></canvas>
                         </div>
+
                     </div>
                 </div>
             </main>
         </div>
     </div>
+
+    <script>
+
+        // Pastikan Anda menggunakan data yang benar yang dikirim dari PHP
+        const chartData = <?php echo $data_json; ?>;
+
+        console.log(chartData);  // Debugging data
+
+        // Menyiapkan label bulan dan data revenue untuk grafik
+        const months = chartData.map(data => `Month ${data.month}`);
+        const revenues = chartData.map(data => data.total);
+
+        console.log(months);  // Debugging label
+        console.log(revenues);  // Debugging data
+
+        // Membuat grafik
+        const ctx = document.getElementById('revenueChart').getContext('2d');
+        const revenueChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: months,
+                datasets: [{
+                    label: 'Revenue (in IDR)',
+                    data: revenues,
+                    borderColor: '#FF5733',
+                    backgroundColor: 'rgba(255, 87, 51, 0.2)',
+                    borderWidth: 2,
+                    fill: true,
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                    },
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                    },
+                }
+            }
+        });
+    </script>
+
+
+</body>
 
 </html>

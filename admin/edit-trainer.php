@@ -1,45 +1,59 @@
 <?php
-$conn = new mysqli("localhost", "root", "", "kingmuaythai_db");
-
-if ($conn->connect_error) {
-    die("Connection failed: " . $conn->connect_error);
-}
+session_start();
+require_once '../config/db.php';
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    // Get the form data
     $id = $_POST['id'];
     $name = $_POST['name'];
     $position = $_POST['position'];
     $status = $_POST['status'];
     $specialties = $_POST['specialties'];
-    $cover_photo = $_FILES['cover_photo'];
-
-    // Handle cover photo upload
-    if ($cover_photo['error'] == 0) {
+    
+    // Default to current photo
+    $cover_photo = $_POST['current_cover_photo'];
+    
+    // Handle new photo upload if provided
+    if (!empty($_FILES['cover_photo']['name'])) {
         $target_dir = "../admin/uploads/trainers/";
-        $target_file = $target_dir . basename($cover_photo["name"]);
-
-        if (move_uploaded_file($cover_photo["tmp_name"], $target_file)) {
-            $cover_photo_url = $target_file;
+        
+        // Generate unique filename
+        $file_ext = pathinfo($_FILES['cover_photo']['name'], PATHINFO_EXTENSION);
+        $new_filename = 'trainer_' . uniqid() . '.' . $file_ext;
+        $target_file = $target_dir . $new_filename;
+        
+        // Check and move uploaded file
+        if (move_uploaded_file($_FILES['cover_photo']['tmp_name'], $target_file)) {
+            // Delete old photo if exists
+            if (file_exists($_POST['current_cover_photo'])) {
+                unlink($_POST['current_cover_photo']);
+            }
+            $cover_photo = $target_file;
         } else {
-            echo 'error';
+            $_SESSION['error'] = "Gagal mengupload foto";
+            header("Location: trainers.php");
             exit;
         }
-    } else {
-        $cover_photo_url = $_POST['cover_photo']; // Keep the old image if no new image
     }
-
-    // Update in the database
-    $stmt = $conn->prepare("UPDATE trainers SET name = ?, position = ?, status = ?, specialties = ?, cover_photo = ? WHERE id = ?");
-    $stmt->bind_param("sssssi", $name, $position, $status, $specialties, $cover_photo_url, $id);
-
-    if ($stmt->execute()) {
-        echo 'success';
-    } else {
-        echo 'error';
+    
+    try {
+        $stmt = $pdo->prepare("UPDATE trainers SET 
+            name = ?, 
+            position = ?, 
+            status = ?, 
+            specialties = ?, 
+            cover_photo = ? 
+            WHERE id = ?");
+        
+        $stmt->execute([$name, $position, $status, $specialties, $cover_photo, $id]);
+        
+        $_SESSION['message'] = "Trainer berhasil diperbarui";
+        header("Location: trainers.php");
+        exit;
+        
+    } catch (PDOException $e) {
+        $_SESSION['error'] = "Gagal memperbarui trainer: " . $e->getMessage();
+        header("Location: trainers.php");
+        exit;
     }
-
-    $stmt->close();
-    $conn->close();
 }
 ?>

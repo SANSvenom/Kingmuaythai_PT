@@ -1,4 +1,5 @@
 <?php
+
 // Enable full error reporting
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
@@ -337,7 +338,7 @@ function openPaymentDetail(payment) {
     
     content.innerHTML = `
         <div class="space-y-4">
-            <h3 class="text-lg font-semibold text-gray-900">Detail Pembayaran #${payment.id}</h3>
+        
             
             <!-- Bagian Bukti Pembayaran -->
                 ${proofImageUrl ? `
