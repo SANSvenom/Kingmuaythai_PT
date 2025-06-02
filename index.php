@@ -131,10 +131,10 @@
             
             <div class="footer-col">
                 <h3>Kontak Kami</h3>
-                <p>Jl. Pahlawan No. 123</p>
-                <p>Jakarta Selatan, Indonesia</p>
+                <p>Jl. Terusan Buah Batu No.54</p>
+                <p>Kota Bandung, Jawa Barat</p>
                 <p>Email: info@kingmuaythai.id</p>
-                <p>Telepon: +62 123 4567 890</p>
+                <p>Telepon: 0878-3289-1722</p>
             </div>
         </div>
         

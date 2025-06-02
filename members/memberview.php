@@ -987,7 +987,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['submit_payment'])) {
                     <div class="h-10 w-10 rounded-full bg-green-100 flex items-center justify-center mr-3">
                         <i class="fab fa-whatsapp text-green-600 text-xl"></i>
                     </div>
-                    <span class="font-medium">Hubungi Admin</span>
+                    <span class="font-medium">+ 628-0980-8765 </span>
                 </div>
                 <i class="fas fa-chevron-right text-gray-400"></i>
             </a>

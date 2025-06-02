@@ -1,5 +1,10 @@
 <?php
-require_once __DIR__ . '../config/auth_check.php';
+session_start([
+    'cookie_lifetime' => 86400,
+    'gc_maxlifetime'  => 86400
+]);
+
+
 require __DIR__ . '../config/db.php'; // This returns a PDO connection
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
