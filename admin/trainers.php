@@ -1,5 +1,6 @@
 <?php
 require_once '../config/auth_check.php';
+require_once '../config/db.php';
 // Jika belum ada session user, redirect ke login
 if (!isset($_SESSION['user_id'])) {
     header('Location: /login.php');
@@ -142,7 +143,7 @@ if (!isset($_SESSION['user_id'])) {
                         <!-- Trainer Cards -->
                         <div class="container mx-auto px-4 " id="trainerCards">
                         <?php
-                            $conn = new mysqli("localhost", "root", "", "kingmuaythai_db");
+                            // $conn = new mysqli("localhost", "root", "", "kingmuaythai_db");
                             $result = $conn->query("SELECT * FROM trainers ORDER BY id DESC");
 
                             if ($result->num_rows > 0): ?>

@@ -6,13 +6,7 @@ if (!isset($_SESSION['user_id'])) {
     header('Location: /login.php');
     exit;
 }
-
-// Koneksi ke database
-$host = 'localhost'; // Host database Anda
-$dbname = 'kingmuaythai_db'; // Nama database Anda
-$username = 'root'; // Username database Anda
-$password = ''; // Password database Anda
-
+require_once '../config/db.php';
 try {
     // Membuat koneksi PDO
     $pdo = new PDO("mysql:host=$host;dbname=$dbname", $username, $password);
