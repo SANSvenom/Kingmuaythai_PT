@@ -9,7 +9,7 @@ if (!isset($_SESSION['user_id'])) {
 require_once '../config/db.php';
 try {
     // Membuat koneksi PDO
-    $pdo = new PDO("mysql:host=$host;dbname=$dbname", $username, $password);
+    // $pdo = new PDO("mysql:host=$host;dbname=$dbname", $username, $password);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 } catch (PDOException $e) {
     // Penanganan kesalahan
