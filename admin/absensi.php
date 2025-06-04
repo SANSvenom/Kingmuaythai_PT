@@ -1,5 +1,5 @@
 <?php
-require_once '/config/auth_check.php';
+require_once '../config/auth_check.php';
 
 // Pastikan hanya admin yang bisa mengakses
 if (empty($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
@@ -8,7 +8,7 @@ if (empty($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
 }
 
 // Koneksi database
-require_once '/config/db.php';
+require_once '../config/db.php';
 
 // Pastikan koneksi berhasil
 if (!$pdo) {
