@@ -1,6 +1,6 @@
 <?php
 
-$conn = new mysqli("localhost", "root", "", "kingmuaythai_db");
+require_once '../config/db.php';
 
 if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
