@@ -142,43 +142,6 @@ $members = $stmt->fetchAll(PDO::FETCH_ASSOC);
                             <?php unset($_SESSION['message']); ?>
                         <?php endif; ?>
 
-                        <!-- Search and Filter Section -->
-                        <div class="flex flex-col md:flex-row justify-between items-center mb-6 space-y-4 md:space-y-0">
-                            <!-- Search Input -->
-                            <form method="GET" class="relative w-full md:w-64">
-                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                    <i class="fas fa-search text-gray-400"></i>
-                                </div>
-                                <input type="text" name="search"
-                                    class="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:ring-red-500 focus:border-red-500 sm:text-sm"
-                                    placeholder="Search members..." value="<?= isset($_GET['search']) ? htmlspecialchars($_GET['search']) : '' ?>">
-                            </form>
-
-                            <!-- Filters + Button -->
-                            <div class="flex space-x-3 items-center">
-                                <!-- Status Filter -->
-                                <div class="relative inline-block text-left">
-                                    <select name="status" onchange="this.form.submit()"
-                                        class="inline-flex justify-between items-center w-40 rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none">
-                                        <option value="">All Status</option>
-                                        <option value="active" <?= (isset($_GET['status']) && $_GET['status'] == 'active') ? 'selected' : '' ?>>Active</option>
-                                        <option value="expired" <?= (isset($_GET['status']) && $_GET['status'] == 'expired') ? 'selected' : '' ?>>Expired</option>
-                                    </select>
-                                </div>
-
-                                <!-- Membership Filter -->
-                                <div class="relative inline-block text-left">
-                                    <select name="membership" onchange="this.form.submit()"
-                                        class="inline-flex justify-between items-center w-40 rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none">
-                                        <option value="">All Memberships</option>
-                                        <option value="premium" <?= (isset($_GET['membership']) && $_GET['membership'] == 'Kelas 4X') ? 'selected' : '' ?>>Kelas 4X</option>
-                                        <option value="regular" <?= (isset($_GET['membership']) && $_GET['membership'] == 'regular') ? 'selected' : '' ?>>Regular</option>
-                                    </select>
-                                </div>
-
-
-                            </div>
-                        </div>
 
                         <!-- Members Table -->
                         <div class="bg-white shadow overflow-hidden sm:rounded-lg">
