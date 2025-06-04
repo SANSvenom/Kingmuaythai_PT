@@ -33,8 +33,9 @@ $stmt = $pdo->query("SELECT COUNT(*) as total_trainers FROM trainers");
 $total_trainers = $stmt->fetch()['total_trainers'];
 
 // Ambil total revenue
-$stmt = $pdo->query("SELECT SUM(amount) as total_revenue FROM payments WHERE status = 'paid'");
+$stmt = $pdo->query("SELECT COALESCE(SUM(amount), 0) as total_revenue FROM payments WHERE status = 'paid'");
 $total_revenue = $stmt->fetch()['total_revenue'];
+
 
 // Mengambil data paket yang dibeli untuk pie chart
 $package_data = [];
