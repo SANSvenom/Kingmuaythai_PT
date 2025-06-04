@@ -1,5 +1,5 @@
 <?php
-require_once '../config/auth_check.php';
+require_once '/config/auth_check.php';
 
 // Cek apakah pengguna sudah login (opsional, tapi baik untuk keamanan)
 if (!isset($_SESSION['user_id'])) {

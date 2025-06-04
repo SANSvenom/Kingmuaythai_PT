@@ -1,8 +1,8 @@
 <?php
-require_once '../config/auth_check.php';
+require_once '/config/auth_check.php';
 
 // Koneksi database
-require_once '../config/db.php';
+require_once '/config/db.php';
 
 // Pastikan hanya member yang bisa mengakses
 if (empty($_SESSION['user_id']) || $_SESSION['role'] !== 'member') {
@@ -52,20 +52,6 @@ if (!$user) {
 
 // Gunakan nama dari database, bukan session
 $username = $user['username'];
-
-// Koneksi ke database untuk mendapatkan jadwal
-$host = 'localhost';
-$dbname = 'kingmuaythai_db';
-$usernameDb = 'root';
-$password = '';
-
-try {
-    // Membuat koneksi PDO
-    $pdo = new PDO("mysql:host=$host;dbname=$dbname", $usernameDb, $password);
-    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-} catch (PDOException $e) {
-    die("Koneksi gagal: " . $e->getMessage());
-}
 
 // Mengambil data jadwal kelas dari database
 $query = "SELECT * FROM class_schedule ORDER BY FIELD(day, 'SENIN', 'SELASA', 'RABU', 'KAMIS', 'JUMAT', 'SABTU'), time";
@@ -931,11 +917,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['submit_payment'])) {
         <!-- Trainers Section -->
         <?php
         // Koneksi ke database
-        $conn = new mysqli("localhost", "root", "", "kingmuaythai_db");
-
-        if ($conn->connect_error) {
-            die("Connection failed: " . $conn->connect_error);
-        }
 
         // Query untuk mendapatkan data pelatih
         $result = $conn->query("SELECT * FROM trainers");

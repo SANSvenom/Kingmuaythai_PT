@@ -1,6 +1,6 @@
 <?php
-require_once '../config/auth_check.php';
-require_once '../config/db.php';
+require_once '/config/auth_check.php';
+require_once '/config/db.php';
 
 // Pastikan hanya member yang bisa mengakses
 if (empty($_SESSION['user_id']) || $_SESSION['role'] !== 'member') {

@@ -1,5 +1,5 @@
 <?php
-require_once '../config/auth_check.php';
+require_once '/config/auth_check.php';
 // Enable full error reporting
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
@@ -13,7 +13,7 @@ if (!isset($_SESSION["username"]) || $_SESSION["role"] != "admin") {
 }
 
 // Include database configuration
-require_once __DIR__ . '/../config/db.php';
+require_once __DIR__ . '/config/db.php';
 
 // Verify connection exists
 if (!isset($pdo)) {
