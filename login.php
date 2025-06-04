@@ -5,7 +5,7 @@ session_start([
 ]);
 
 
-require __DIR__ . '../config/db.php'; // This returns a PDO connection
+require __DIR__ . '/config/db.php'; // This returns a PDO connection
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $username = $_POST["username"];
