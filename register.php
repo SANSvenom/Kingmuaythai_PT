@@ -1,5 +1,5 @@
 <?php
-require __DIR__ . '/config/db.php';
+require '\config\db.php';
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     // Get and sanitize input data

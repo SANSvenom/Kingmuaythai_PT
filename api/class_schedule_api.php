@@ -1,6 +1,6 @@
 <?php
 // Koneksi ke database
-$mysqli = new mysqli("localhost", "root", "", "kingmuaythai_db");
+require_once '../config/db.php';
 header('Content-Type: application/json');
 
 // Cek koneksi
