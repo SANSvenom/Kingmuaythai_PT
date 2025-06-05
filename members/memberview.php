@@ -112,7 +112,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['submit_payment'])) {
 
     // Handle file upload
     if (isset($_FILES['proof_image']) && $_FILES['proof_image']['error'] == UPLOAD_ERR_OK) {
-        $upload_dir = __DIR__ . '/../uploads/payments/';
+        $upload_dir = '\uploads\payments';
 
         // Buat folder jika belum ada
         if (!file_exists($upload_dir)) {
@@ -138,7 +138,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['submit_payment'])) {
         // Generate nama file unik
         $file_ext = pathinfo($_FILES['proof_image']['name'], PATHINFO_EXTENSION);
         $file_name = uniqid('payment_') . '.' . $file_ext;
-        $target_file = $upload_dir . $file_name;
+        $target_file = $upload_dir . '/' . $file_name;
 
         if (move_uploaded_file($_FILES['proof_image']['tmp_name'], $target_file)) {
             $proof_image = $file_name;
