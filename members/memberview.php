@@ -1,8 +1,8 @@
 <?php
-require_once __DIR__ . '/config/auth_check.php';
+require_once __DIR__ . '/../config/auth_check.php';
 
 // Koneksi database
-require_once __DIR__ . '/config/db.php';
+require_once __DIR__ . '/../config/db.php';
 
 // Pastikan hanya member yang bisa mengakses
 if (empty($_SESSION['user_id']) || $_SESSION['role'] !== 'member') {
@@ -112,7 +112,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['submit_payment'])) {
 
     // Handle file upload
     if (isset($_FILES['proof_image']) && $_FILES['proof_image']['error'] == UPLOAD_ERR_OK) {
-        $upload_dir = __DIR__ . '/uploads/payments';
+        $upload_dir = __DIR__ . '/../uploads/payments';
 
         // Buat folder jika belum ada
         if (!file_exists($upload_dir)) {

@@ -5,7 +5,7 @@ session_start([
 ]);
 
 
-require '\config\db.php';
+require __DIR__ . '/config/db.php';
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $username = $_POST["username"];

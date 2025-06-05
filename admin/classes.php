@@ -1,12 +1,12 @@
 <?php
 
-require_once '\config\auth_check.php';
+require_once __DIR__ . '/../config/auth_check.php';
 // Jika belum ada session user, redirect ke login
 if (!isset($_SESSION['user_id'])) {
     header('Location: /login.php');
     exit;
 }
-require_once '\config\db.php';
+require_once __DIR__ . '/../config/db.php';
 try {
     // Membuat koneksi PDO
     // $pdo = new PDO("mysql:host=$host;dbname=$dbname", $username, $password);
